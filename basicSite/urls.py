@@ -15,8 +15,11 @@ Including another URLconf
 """
 from django.conf.urls import include, url
 from django.contrib import admin
+from django.urls import path, include
+from django.views.generic import RedirectView
 
 urlpatterns = [
+    path('', RedirectView.as_view(url='/game/', permanent=False)),
     url(r'^game/', include('game.urls')),
     url(r'^admin/', admin.site.urls),
 ]

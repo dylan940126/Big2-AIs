@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 import os
 import sys
+import asyncio
+import sys
+
+if sys.platform.startswith('win') and sys.version_info >= (3, 8):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "basicSite.settings")
