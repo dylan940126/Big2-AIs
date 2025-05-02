@@ -1,0 +1,4 @@
+# Ignore virtual envs
+tf-env/
+*.pyc
+__pycache__/
