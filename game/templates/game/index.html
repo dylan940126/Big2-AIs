@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8"/>
     <title>Play Big 2 vs. Trained Neural Networks</title>
-    {% load staticfiles %}
+    {% load static %}
     <link rel="stylesheet" href="{% static 'style.css' %}"> 
 </head>
 
@@ -126,6 +126,12 @@
     var sessionScores = [0,0,0,0] //total scores for this session.
     
     var backOfCard = new Image();
+    backOfCard.onload = function() {
+        // 一旦背面圖片載入完成，就觸發遊戲畫面更新
+        if (nOppCards && nOppCards.length) {
+            fullDrawUpdate();
+        }
+    };
     backOfCard.src = "{% static 'cardImages/back.jpg' %}";
     
     var staticURL = "{% static '' %}";

@@ -19,7 +19,12 @@ random_agent = RandomAgent()
 class GameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.game = big2Game.big2Game()
-        #send initial state - write a function big2Game.infoForDrawing
+        # 在 Channels 4.2.2 中，需要處理 scope 中的路徑
+        # 獲取連接路徑
+        self.url_route = self.scope.get('url_route', {})
+        self.url_args = self.url_route.get('kwargs', {})
+        
+        # 接受 WebSocket 連接
         await self.accept()
         await self.sendCurrentGameState()
         
@@ -30,9 +35,9 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps(self.game.getInfoForDrawing()))
         
     async def receive(self, text_data):
-        #when we receive something from client side.
+        # when we receive something from client side.
         data = json.loads(text_data)
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         if data['type'] == "AIGo":
             pGo, state, availAcs = self.game.getCurrentState()
             action, v, nlp = random_agent.step(state, availAcs)
