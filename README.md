@@ -1,7 +1,22 @@
 # Big 2 Server
 
-Play Big 2 against agents trained with deep reinforcement project (see <a href="https://github.com/henrycharlesworth/big2_PPOalgorithm">this project</a> for more details). Rules can be found <a href="https://github.com/henrycharlesworth/big2_PPOalgorithm/blob/master/rules.md">here</a>.
+Play Big 2 against agents trained with deep reinforcement learning (see <a href="https://github.com/henrycharlesworth/big2_PPOalgorithm">this project</a> for more details). Rules can be found <a href="https://github.com/henrycharlesworth/big2_PPOalgorithm/blob/master/rules.md">here</a>.
 
-Currently hosting an online version at: https://big2-rl-4ba753215e7b.herokuapp.com/game
 
-But if this ever goes down this should allow you to deploy and run the web-app locally. Tested using Python 3.8.5, run `pip install -r requirements.txt`, then run `python manage.py runserver`.
+# Usage
+```bash
+# Create a virtual environment with conda
+conda create -n big2 python=3.13
+conda activate big2
+
+# or create a virtual environment with venv
+python3 -m venv big2
+source big2/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+# Run the server
+python manage.py runserver
+```
+
+Once the server is running, open your browser and go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
