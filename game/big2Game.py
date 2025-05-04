@@ -50,26 +50,26 @@ class big2Game:
         self.currentHands[3] = np.sort(shuffledDeck[26:39])
         self.currentHands[4] = np.sort(shuffledDeck[39:52])
         self.cardsPlayed = np.zeros((4,52), dtype=int)
-        #who has 3D - this gets played
+        #找出擁有梅花三(3C)的玩家 - 這張牌會被首先打出
         for i in range(52):
-            if shuffledDeck[i] == 1:
-                threeDiamondInd = i
+            if shuffledDeck[i] == 1:  # 梅花三的編號是1
+                threeClubInd = i
                 break
-        if threeDiamondInd < 13:
-            whoHas3D = 1
-        elif threeDiamondInd < 26:
-            whoHas3D = 2
-        elif threeDiamondInd < 39:
-            whoHas3D = 3
+        if threeClubInd < 13:
+            whoHas3C = 1
+        elif threeClubInd < 26:
+            whoHas3C = 2
+        elif threeClubInd < 39:
+            whoHas3C = 3
         else:
-            whoHas3D = 4
-        self.currentHands[whoHas3D] = self.currentHands[whoHas3D][1:]
-        self.cardsPlayed[whoHas3D-1][0] = 1
+            whoHas3C = 4
+        self.currentHands[whoHas3C] = self.currentHands[whoHas3C][1:]
+        self.cardsPlayed[whoHas3C-1][0] = 1  # 梅花三(3C)的索引是0（1-1）
         self.goIndex = 1
         self.handsPlayed = {}
-        self.handsPlayed[self.goIndex] = handPlayed([1],whoHas3D)
+        self.handsPlayed[self.goIndex] = handPlayed([1], whoHas3C)  # 梅花三(3C)的編號是1
         self.goIndex += 1
-        self.playersGo = whoHas3D + 1
+        self.playersGo = whoHas3C + 1
         if self.playersGo == 5:
             self.playersGo = 1
         self.passCount = 0
@@ -91,7 +91,7 @@ class big2Game:
         self.fillNeuralNetworkHand(2)
         self.fillNeuralNetworkHand(3)
         self.fillNeuralNetworkHand(4)
-        self.updateNeuralNetworkInputs(np.array([1]),whoHas3D)
+        self.updateNeuralNetworkInputs(np.array([1]),whoHas3C)
         self.gameOver = 0
         self.rewards = np.zeros((4,))
         self.goCounter = 0
@@ -195,7 +195,7 @@ class big2Game:
         
         if nCards == 2:
             self.neuralNetworkInputs[nPlayer][nPlayerInd+21] = 1
-            self.neuralNetworkInputs[nnPlayer][nnPlayerInd+21] = 1
+            self.neuralNetworkInputs[nnPlayer][nPlayerInd+21] = 1
             self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd+21] = 1
             value = int(gameLogic.cardValue(prevHand[1]))
             suit = prevHand[1] % 4
@@ -204,7 +204,7 @@ class big2Game:
             self.neuralNetworkInputs[nnnPlayer][phInd+19] = 1
         elif nCards == 3:
             self.neuralNetworkInputs[nPlayer][nPlayerInd+22] = 1
-            self.neuralNetworkInputs[nnPlayer][nnPlayerInd+22] = 1
+            self.neuralNetworkInputs[nnPlayer][nPlayerInd+22] = 1
             self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd+22] = 1
             value = int(gameLogic.cardValue(prevHand[2]))
             suit = prevHand[2] % 4
@@ -213,7 +213,7 @@ class big2Game:
             self.neuralNetworkInputs[nnnPlayer][phInd+20] = 1
         elif nCards == 4:
             self.neuralNetworkInputs[nPlayer][nPlayerInd+23] = 1
-            self.neuralNetworkInputs[nnPlayer][nnPlayerInd+23] = 1
+            self.neuralNetworkInputs[nnPlayer][nPlayerInd+23] = 1
             self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd+23] = 1
             value = int(gameLogic.cardValue(prevHand[3]))
             suit = prevHand[3] % 4
@@ -229,7 +229,7 @@ class big2Game:
             #import pdb; pdb.set_trace()
             if gameLogic.isStraight(prevHand):
                 self.neuralNetworkInputs[nPlayer][nPlayerInd+24] = 1
-                self.neuralNetworkInputs[nnPlayer][nnPlayerInd+24] = 1
+                self.neuralNetworkInputs[nnPlayer][nPlayerInd+24] = 1
                 self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd+24] = 1
                 value = int(gameLogic.cardValue(prevHand[4]))
                 suit = prevHand[4] % 4

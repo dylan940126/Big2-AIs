@@ -4,3 +4,6 @@ tf-env/
 __pycache__/
 *.sqlite3
 .vscode/
+.python-version
+pyproject.toml
+uv.lock

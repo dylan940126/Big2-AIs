@@ -242,14 +242,14 @@ def convertHand(hand):
         else:
             base = int(card[0])-2
         
-        if card[1] == "D":
-            suit = 1
-        elif card[1] == "C":
-            suit = 2
+        if card[1] == "C":
+            suit = 1  # 梅花 (Club)
+        elif card[1] == "D":
+            suit = 2  # 方塊 (Diamond)
         elif card[1] == "H":
-            suit = 3
+            suit = 3  # 愛心 (Heart)
         elif card[1] == "S":
-            suit = 4
+            suit = 4  # 黑桃 (Spade)
             
         output[counter] = int((base-1)*4 + suit)
         counter += 1
@@ -268,7 +268,7 @@ def cardValue(num):
 
 class card:
     def __init__(self, number, i):
-        self.suit = number % 4 #1 - Diamond, 2 - Club, 3- Heart, 0 - Spade
+        self.suit = number % 4 #1 - Club, 2 - Diamond, 3 - Heart, 0 - Spade
         self.value = np.ceil(number/4) #from 1 to 13.
         self.indexInHand = i #index within current hand (from 0 to 12)
         self.inPair = 0
@@ -296,13 +296,13 @@ class card:
         elif self.value == 13:
             string1 = "2"
         if self.suit == 1:
-            string2 = "D"
+            string2 = "C"  # 梅花 (Club)
         elif self.suit == 2:
-            string2 = "C"
+            string2 = "D"  # 方塊 (Diamond)
         elif self.suit == 3:
-            string2 = "H"
+            string2 = "H"  # 愛心 (Heart)
         else:
-            string2 = "S"
+            string2 = "S"  # 黑桃 (Spade)
         cardString = string1 + string2
         return "<card. %s inPair: %d, inThree: %d, inFlush: %d, inStraight: %d>" % (cardString, self.inPair, self.inThreeOfAKind, self.inFlush, self.inStraight)
         
@@ -336,36 +336,36 @@ class handsAvailable:
             self.fillThreeOfAKinds()
             self.fillFourOfAKinds()
     def fillSuits(self):
-        self.diamonds = np.zeros((self.handLength,))
-        self.clubs = np.zeros((self.handLength,))
-        self.hearts = np.zeros((self.handLength,))
-        self.spades = np.zeros((self.handLength,))
-        dc = 0
+        self.clubs = np.zeros((self.handLength,))  # 梅花 (Club)
+        self.diamonds = np.zeros((self.handLength,))  # 方塊 (Diamond)
+        self.hearts = np.zeros((self.handLength,))  # 愛心 (Heart)
+        self.spades = np.zeros((self.handLength,))  # 黑桃 (Spade)
         cc = 0
+        dc = 0
         hc = 0
         sc = 0
         for i in range(self.handLength):
             val = self.cHand[i] % 4
             if val == 1:
-                self.diamonds[dc] = self.cHand[i]
-                dc += 1
-            elif val == 2:
-                self.clubs[cc] = self.cHand[i]
+                self.clubs[cc] = self.cHand[i]  # 梅花 (Club)
                 cc += 1
+            elif val == 2:
+                self.diamonds[dc] = self.cHand[i]  # 方塊 (Diamond)
+                dc += 1
             elif val == 3:
-                self.hearts[hc] = self.cHand[i]
+                self.hearts[hc] = self.cHand[i]  # 愛心 (Heart)
                 hc += 1
             else:
-                self.spades[sc] = self.cHand[i]
+                self.spades[sc] = self.cHand[i]  # 黑桃 (Spade)
                 sc += 1
-        self.diamonds = self.diamonds[0:dc]
         self.clubs = self.clubs[0:cc]
+        self.diamonds = self.diamonds[0:dc]
         self.hearts = self.hearts[0:hc]
         self.spades = self.spades[0:sc]
-        if self.diamonds.size >= 5:
-            self.flushes.append(self.diamonds)
         if self.clubs.size >= 5:
             self.flushes.append(self.clubs)
+        if self.diamonds.size >= 5:
+            self.flushes.append(self.diamonds)
         if self.hearts.size >= 5:
             self.flushes.append(self.hearts)
         if self.spades.size >= 5:
@@ -442,7 +442,6 @@ class handsAvailable:
                             self.cards[self.cHand[i]].inFourOfAKind = 1
                             self.cards[self.cHand[i+1]].inFourOfAKind = 1
                             self.cards[self.cHand[i+2]].inFourOfAKind = 1
-                            self.cards[self.cHand[i+3]].inFourOfAKind = 1            
-        
-        
-    
+                            self.cards[self.cHand[i+3]].inFourOfAKind = 1
+
+
