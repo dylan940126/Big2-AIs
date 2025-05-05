@@ -51,10 +51,7 @@ class big2Game:
         self.currentHands[4] = np.sort(shuffledDeck[39:52])
         self.cardsPlayed = np.zeros((4,52), dtype=int)
         #找出擁有梅花三(3C)的玩家 - 這張牌會被首先打出
-        for i in range(52):
-            if shuffledDeck[i] == 1:  # 梅花三的編號是1
-                threeClubInd = i
-                break
+        threeClubInd = np.where(shuffledDeck == 1)[0][0]  # 梅花三的編號是1
         if threeClubInd < 13:
             whoHas3C = 1
         elif threeClubInd < 26:
@@ -74,233 +71,15 @@ class big2Game:
             self.playersGo = 1
         self.passCount = 0
         self.control = 0
-        self.neuralNetworkInputs = {}
-        self.neuralNetworkInputs[1] = np.zeros((412,), dtype=int)
-        self.neuralNetworkInputs[2] = np.zeros((412,), dtype=int)
-        self.neuralNetworkInputs[3] = np.zeros((412,), dtype=int)
-        self.neuralNetworkInputs[4] = np.zeros((412,), dtype=int)
-        nPlayerInd = 22*13
-        nnPlayerInd = nPlayerInd + 27
-        nnnPlayerInd = nnPlayerInd + 27
-        #initialize number of cards
-        for i in range(1,5):
-            self.neuralNetworkInputs[i][nPlayerInd+12]=1
-            self.neuralNetworkInputs[i][nnPlayerInd+12]=1
-            self.neuralNetworkInputs[i][nnnPlayerInd+12]=1
-        self.fillNeuralNetworkHand(1)
-        self.fillNeuralNetworkHand(2)
-        self.fillNeuralNetworkHand(3)
-        self.fillNeuralNetworkHand(4)
-        self.updateNeuralNetworkInputs(np.array([1]),whoHas3C)
         self.gameOver = 0
         self.rewards = np.zeros((4,))
         self.goCounter = 0
-        
-    def fillNeuralNetworkHand(self,player):
-        handOptions = gameLogic.handsAvailable(self.currentHands[player])
-        sInd = 0
-        self.neuralNetworkInputs[player][sInd:22*13] = 0
-        for i in range(len(self.currentHands[player])):
-            value = handOptions.cards[self.currentHands[player][i]].value
-            suit = handOptions.cards[self.currentHands[player][i]].suit
-            self.neuralNetworkInputs[player][sInd+int(value)-1] = 1
-            if suit == 1:
-                self.neuralNetworkInputs[player][sInd+13] = 1
-            elif suit == 2:
-                self.neuralNetworkInputs[player][sInd+14] = 1
-            elif suit == 3:
-                self.neuralNetworkInputs[player][sInd+15] = 1
-            else:
-                self.neuralNetworkInputs[player][sInd+16] = 1
-            if handOptions.cards[self.currentHands[player][i]].inPair:
-                self.neuralNetworkInputs[player][sInd+17] = 1
-            if handOptions.cards[self.currentHands[player][i]].inThreeOfAKind:
-                self.neuralNetworkInputs[player][sInd+18] = 1
-            if handOptions.cards[self.currentHands[player][i]].inFourOfAKind:
-                self.neuralNetworkInputs[player][sInd+19] = 1
-            if handOptions.cards[self.currentHands[player][i]].inStraight:
-                self.neuralNetworkInputs[player][sInd+20] = 1
-            if handOptions.cards[self.currentHands[player][i]].inFlush:
-                self.neuralNetworkInputs[player][sInd+21] = 1
-            sInd += 22
-    
-    def updateNeuralNetworkPass(self, cPlayer):
-        #this is a bit of a mess tbh, some things are unnecessary.
-        phInd = 22*13 + 27 + 27 + 27 + 16
-        nPlayer = cPlayer-1
-        if nPlayer == 0:
-            nPlayer = 4
-        nnPlayer = nPlayer - 1
-        if nnPlayer == 0:
-            nnPlayer = 4
-        nnnPlayer = nnPlayer - 1
-        if nnnPlayer == 0:
-            nnnPlayer = 4
-        if self.passCount < 2:
-            #no control - prev hands remain same
-            self.neuralNetworkInputs[nPlayer][phInd+26:] = 0
-            self.neuralNetworkInputs[nnPlayer][phInd+26:] = 0
-            self.neuralNetworkInputs[nnnPlayer][phInd+26:] = 0
-            if self.passCount == 0:
-                self.neuralNetworkInputs[nPlayer][phInd+27] = 1
-                self.neuralNetworkInputs[nnPlayer][phInd+27] = 1
-                self.neuralNetworkInputs[nnnPlayer][phInd+27] = 1
-            else:
-                self.neuralNetworkInputs[nPlayer][phInd+28] = 1
-                self.neuralNetworkInputs[nnPlayer][phInd+28] = 1
-                self.neuralNetworkInputs[nnnPlayer][phInd+28] = 1
-        else:
-            #next player is gaining control.
-            self.neuralNetworkInputs[nPlayer][phInd:] = 0
-            self.neuralNetworkInputs[nnPlayer][phInd:] = 0
-            self.neuralNetworkInputs[nnnPlayer][phInd:] = 0
-            self.neuralNetworkInputs[nnnPlayer][phInd+17] = 1
-    
-    def updateNeuralNetworkInputs(self,prevHand, cPlayer):
-        self.fillNeuralNetworkHand(cPlayer)
-        nPlayer = cPlayer-1
-        if nPlayer == 0:
-            nPlayer = 4
-        nnPlayer = nPlayer - 1
-        if nnPlayer == 0:
-            nnPlayer = 4
-        nnnPlayer = nnPlayer - 1
-        if nnnPlayer == 0:
-            nnnPlayer = 4
-        nCards = self.currentHands[cPlayer].size
-        cardsOfNote = np.intersect1d(prevHand, np.arange(45,53))
-        nPlayerInd = 22*13
-        nnPlayerInd = nPlayerInd + 27
-        nnnPlayerInd = nnPlayerInd + 27
-        #next player
-        self.neuralNetworkInputs[nPlayer][nPlayerInd:(nPlayerInd+13)] = 0
-        self.neuralNetworkInputs[nPlayer][nPlayerInd+nCards-1] = 1 #number of cards
-        #next next player
-        self.neuralNetworkInputs[nnPlayer][nnPlayerInd:(nnPlayerInd+13)] = 0
-        self.neuralNetworkInputs[nnPlayer][nnPlayerInd + nCards-1] = 1
-        #next next next player
-        self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd:(nnnPlayerInd+13)] = 0
-        self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd + nCards-1] = 1
-        for val in cardsOfNote:
-            self.neuralNetworkInputs[nPlayer][nPlayerInd+13+(val-45)] = 1
-            self.neuralNetworkInputs[nnPlayer][nnPlayerInd+13+(val-45)] = 1
-            self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd+13+(val-45)] = 1
-        #prevHand
-        phInd = nnnPlayerInd + 27 + 16
-        self.neuralNetworkInputs[nPlayer][phInd:] = 0
-        self.neuralNetworkInputs[nnPlayer][phInd:] = 0
-        self.neuralNetworkInputs[nnnPlayer][phInd:] = 0
-        self.neuralNetworkInputs[cPlayer][phInd:] = 0
-        nCards = prevHand.size
-        
-        if nCards == 2:
-            self.neuralNetworkInputs[nPlayer][nPlayerInd+21] = 1
-            self.neuralNetworkInputs[nnPlayer][nPlayerInd+21] = 1
-            self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd+21] = 1
-            value = int(gameLogic.cardValue(prevHand[1]))
-            suit = prevHand[1] % 4
-            self.neuralNetworkInputs[nPlayer][phInd+19] = 1
-            self.neuralNetworkInputs[nnPlayer][phInd+19] = 1
-            self.neuralNetworkInputs[nnnPlayer][phInd+19] = 1
-        elif nCards == 3:
-            self.neuralNetworkInputs[nPlayer][nPlayerInd+22] = 1
-            self.neuralNetworkInputs[nnPlayer][nPlayerInd+22] = 1
-            self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd+22] = 1
-            value = int(gameLogic.cardValue(prevHand[2]))
-            suit = prevHand[2] % 4
-            self.neuralNetworkInputs[nPlayer][phInd+20] = 1
-            self.neuralNetworkInputs[nnPlayer][phInd+20] = 1
-            self.neuralNetworkInputs[nnnPlayer][phInd+20] = 1
-        elif nCards == 4:
-            self.neuralNetworkInputs[nPlayer][nPlayerInd+23] = 1
-            self.neuralNetworkInputs[nnPlayer][nPlayerInd+23] = 1
-            self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd+23] = 1
-            value = int(gameLogic.cardValue(prevHand[3]))
-            suit = prevHand[3] % 4
-            if gameLogic.isTwoPair(prevHand):
-                self.neuralNetworkInputs[nPlayer][phInd+21] = 1
-                self.neuralNetworkInputs[nnPlayer][phInd+21] = 1
-                self.neuralNetworkInputs[nnnPlayer][phInd+21] = 1
-            else:
-                self.neuralNetworkInputs[nPlayer][phInd+22] = 1
-                self.neuralNetworkInputs[nnPlayer][phInd+22] = 1
-                self.neuralNetworkInputs[nnnPlayer][phInd+22] = 1
-        elif nCards == 5:
-            #import pdb; pdb.set_trace()
-            if gameLogic.isStraight(prevHand):
-                self.neuralNetworkInputs[nPlayer][nPlayerInd+24] = 1
-                self.neuralNetworkInputs[nnPlayer][nPlayerInd+24] = 1
-                self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd+24] = 1
-                value = int(gameLogic.cardValue(prevHand[4]))
-                suit = prevHand[4] % 4
-                self.neuralNetworkInputs[nPlayer][phInd+23] = 1
-                self.neuralNetworkInputs[nnPlayer][phInd+23] = 1
-                self.neuralNetworkInputs[nnnPlayer][phInd+23] = 1
-            if gameLogic.isFlush(prevHand):
-                self.neuralNetworkInputs[nPlayer][nPlayerInd + 25] = 1
-                self.neuralNetworkInputs[nnPlayer][nnPlayerInd + 25] = 1
-                self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd+25] = 1
-                value = int(gameLogic.cardValue(prevHand[4]))
-                suit = prevHand[4] % 4
-                self.neuralNetworkInputs[nPlayer][phInd+24] = 1
-                self.neuralNetworkInputs[nnPlayer][phInd+24] = 1
-                self.neuralNetworkInputs[nnnPlayer][phInd+24] = 1
-            elif gameLogic.isFullHouse(prevHand):
-                self.neuralNetworkInputs[nPlayer][nPlayerInd + 26] = 1
-                self.neuralNetworkInputs[nnPlayer][nnPlayerInd + 26] = 1
-                self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd + 26] = 1
-                value = int(gameLogic.cardValue(prevHand[2]))
-                suit = -1
-                self.neuralNetworkInputs[nPlayer][phInd+25] = 1
-                self.neuralNetworkInputs[nnPlayer][phInd+25] = 1
-                self.neuralNetworkInputs[nnnPlayer][phInd+25] = 1
-        else:
-            value = int(gameLogic.cardValue(prevHand[0]))
-            suit = prevHand[0] % 4
-            self.neuralNetworkInputs[nPlayer][phInd+18] = 1
-            self.neuralNetworkInputs[nnPlayer][phInd+18] = 1
-            self.neuralNetworkInputs[nnnPlayer][phInd+18] = 1
-        self.neuralNetworkInputs[nPlayer][phInd+value-1] = 1
-        self.neuralNetworkInputs[nnPlayer][phInd+value-1] = 1
-        self.neuralNetworkInputs[nnnPlayer][phInd+value-1] = 1
-        if suit == 1:
-            self.neuralNetworkInputs[nPlayer][phInd+13] = 1
-            self.neuralNetworkInputs[nnPlayer][phInd+13] = 1
-            self.neuralNetworkInputs[nnnPlayer][phInd+13] = 1
-        elif suit == 2:
-            self.neuralNetworkInputs[nPlayer][phInd+14] = 1
-            self.neuralNetworkInputs[nnPlayer][phInd+14] = 1
-            self.neuralNetworkInputs[nnnPlayer][phInd+14] = 1
-        elif suit == 3:
-            self.neuralNetworkInputs[nPlayer][phInd+15] = 1
-            self.neuralNetworkInputs[nnPlayer][phInd+15] = 1
-            self.neuralNetworkInputs[nnnPlayer][phInd+15] = 1
-        elif suit == 0:
-            self.neuralNetworkInputs[nPlayer][phInd+16] = 1
-            self.neuralNetworkInputs[nnPlayer][phInd+16] = 1
-            self.neuralNetworkInputs[nnnPlayer][phInd+16] = 1
-        #general - common to all hands.
-        cardsRecord = np.intersect1d(prevHand, np.arange(37,53))
-        endInd = nnnPlayerInd + 27
-        for val in cardsRecord:
-            self.neuralNetworkInputs[1][endInd+(val-37)] = 1
-            self.neuralNetworkInputs[2][endInd+(val-37)] = 1
-            self.neuralNetworkInputs[3][endInd+(val-37)] = 1
-            self.neuralNetworkInputs[4][endInd+(val-37)] = 1
-        #no passes.
-        self.neuralNetworkInputs[nPlayer][phInd+26] = 1
-        self.neuralNetworkInputs[nnPlayer][phInd+26] = 1
-        self.neuralNetworkInputs[nnnPlayer][phInd+26] = 1
-        self.neuralNetworkInputs[nPlayer][phInd+27:] = 0
-        self.neuralNetworkInputs[nnPlayer][phInd+27:] = 0
-        self.neuralNetworkInputs[nnnPlayer][phInd+27:] = 0                
     
     def updateGame(self, option, nCards=0):
         self.goCounter += 1
         if option == -1:
             #they pass
             cPlayer = self.playersGo
-            self.updateNeuralNetworkPass(cPlayer)
             self.playersGo += 1
             if self.playersGo == 5:
                 self.playersGo = 1
@@ -330,7 +109,6 @@ class big2Game:
             self.assignRewards()
             self.gameOver = 1
             return
-        self.updateNeuralNetworkInputs(handToPlay, self.playersGo)
         self.playersGo += 1
         if self.playersGo == 5:
             self.playersGo = 1
@@ -518,12 +296,10 @@ class big2Game:
             info = {}
             info['numTurns'] = self.goCounter
             info['rewards'] = self.rewards
-            #what else is worth monitoring?            
-            #self.reset()
         return reward, done, info
     
     def getCurrentState(self):
-        return self.playersGo, self.neuralNetworkInputs[self.playersGo].reshape(1,412), convertAvailableActions(self.returnAvailableActions()).reshape(1,1695)
+        return self.playersGo, None, convertAvailableActions(self.returnAvailableActions()).reshape(1,1695)
         
     def getInfoForDrawing(self):
         prevHands = []

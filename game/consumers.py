@@ -6,8 +6,6 @@ import random
 
 class RandomAgent:
     def step(self, obs, availAcs):
-        # availAcs: list of available actions, 1 for available, 0 or -inf for unavailable
-        # 這裡假設 availAcs 是一個 list 或 numpy array
         available_indices = [i for i, v in enumerate(availAcs[0]) if v == 0]
         if not available_indices:
             return [0], None, None  # fallback
@@ -19,12 +17,9 @@ random_agent = RandomAgent()
 class GameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.game = big2Game.big2Game()
-        # 在 Channels 4.2.2 中，需要處理 scope 中的路徑
-        # 獲取連接路徑
         self.url_route = self.scope.get('url_route', {})
         self.url_args = self.url_route.get('kwargs', {})
         
-        # 接受 WebSocket 連接
         await self.accept()
         await self.sendCurrentGameState()
         
