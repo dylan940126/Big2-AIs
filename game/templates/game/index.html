@@ -1,312 +1,528 @@
 <!-- Main Game Room Template -->
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="utf-8"/>
+  <head>
+    <meta charset="utf-8" />
     <title>Play Big 2 vs. Trained Neural Networks</title>
     {% load static %}
-    <link rel="stylesheet" href="{% static 'style.css' %}"> 
-</head>
+    <link rel="stylesheet" href="{% static 'style.css' %}" />
+  </head>
 
-<body>
+  <body>
+    <canvas id="gameCanvas" width="1400" height="600"></canvas>
 
-<canvas id="gameCanvas" width="1400" height="600"></canvas>
+    <div
+      class="button"
+      onclick="submitHand();"
+      style="top: 570px; left: 1050px"
+    >
+      Play Hand
+    </div>
+    <div class="button" onclick="passOrAI();" style="top: 605px; left: 1050px">
+      Pass/ Make AI Play
+    </div>
+    <div
+      class="button"
+      id="newGame"
+      onclick="resetGame();"
+      style="top: 640px; left: 1050px; visibility: hidden"
+    >
+      New Game
+    </div>
 
-<div class="button" onclick="submitHand();" style="top: 570px; left: 1050px;">Play Hand</div>
-<div class="button" onclick="passOrAI();" style="top: 605px; left: 1050px;">Pass/ Make AI Play</div>
-<div class="button" id="newGame" onclick="resetGame();" style="top: 640px; left: 1050px; visibility: hidden">New Game</div>
+    <div class="playerText" id="player1" style="top: 570px; left: 230px"></div>
+    <div class="playerText" id="player2" style="top: 300px; left: 1450px"></div>
+    <div class="playerText" id="player3" style="top: 15px; left: 700px"></div>
+    <div class="playerText" id="player4" style="top: 300px; left: 20px"></div>
 
-<div class = "playerText" id="player1" style="top:570px; left:230px"></div>
-<div class = "playerText" id="player2" style="top:300px; left:1450px"></div>
-<div class = "playerText" id="player4" style="top:300px; left:20px"></div>
-<div class = "playerText" id="player3" style="top:15px; left:700px"></div>
+    <div class="playerCard" id="pc1" onclick="selectCard(1);"></div>
+    <div class="playerCard" id="pc2" onclick="selectCard(2);"></div>
+    <div class="playerCard" id="pc3" onclick="selectCard(3);"></div>
+    <div class="playerCard" id="pc4" onclick="selectCard(4);"></div>
+    <div class="playerCard" id="pc5" onclick="selectCard(5);"></div>
+    <div class="playerCard" id="pc6" onclick="selectCard(6);"></div>
+    <div class="playerCard" id="pc7" onclick="selectCard(7);"></div>
+    <div class="playerCard" id="pc8" onclick="selectCard(8);"></div>
+    <div class="playerCard" id="pc9" onclick="selectCard(9);"></div>
+    <div class="playerCard" id="pc10" onclick="selectCard(10);"></div>
+    <div class="playerCard" id="pc11" onclick="selectCard(11);"></div>
+    <div class="playerCard" id="pc12" onclick="selectCard(12);"></div>
+    <div class="playerCard" id="pc13" onclick="selectCard(13);"></div>
 
-<div class="playerCard" id="pc1" onclick="selectCard(1);"></div>
-<div class="playerCard" id="pc2" onclick="selectCard(2);"></div>
-<div class="playerCard" id="pc3" onclick="selectCard(3);"></div>
-<div class="playerCard" id="pc4" onclick="selectCard(4);"></div>
-<div class="playerCard" id="pc5" onclick="selectCard(5);"></div>
-<div class="playerCard" id="pc6" onclick="selectCard(6);"></div>
-<div class="playerCard" id="pc7" onclick="selectCard(7);"></div>
-<div class="playerCard" id="pc8" onclick="selectCard(8);"></div>
-<div class="playerCard" id="pc9" onclick="selectCard(9);"></div>
-<div class="playerCard" id="pc10" onclick="selectCard(10);"></div>
-<div class="playerCard" id="pc11" onclick="selectCard(11);"></div>
-<div class="playerCard" id="pc12" onclick="selectCard(12);"></div>
-<div class="playerCard" id="pc13" onclick="selectCard(13);"></div>
+    <div class="playerCard" id="prev11"></div>
+    <div class="playerCard" id="prev12"></div>
+    <div class="playerCard" id="prev13"></div>
+    <div class="playerCard" id="prev14"></div>
+    <div class="playerCard" id="prev15"></div>
 
-<div class = "playerCard" id="prev11"></div>
-<div class = "playerCard" id="prev12"></div>
-<div class = "playerCard" id="prev13"></div>
-<div class = "playerCard" id="prev14"></div>
-<div class = "playerCard" id="prev15"></div>
+    <div class="playerCard" id="prev21"></div>
+    <div class="playerCard" id="prev22"></div>
+    <div class="playerCard" id="prev23"></div>
+    <div class="playerCard" id="prev24"></div>
+    <div class="playerCard" id="prev25"></div>
 
-<div class = "playerCard" id="prev21"></div>
-<div class = "playerCard" id="prev22"></div>
-<div class = "playerCard" id="prev23"></div>
-<div class = "playerCard" id="prev24"></div>
-<div class = "playerCard" id="prev25"></div>
+    <div class="playerCard" id="prev31"></div>
+    <div class="playerCard" id="prev32"></div>
+    <div class="playerCard" id="prev33"></div>
+    <div class="playerCard" id="prev34"></div>
+    <div class="playerCard" id="prev35"></div>
 
-<div class = "playerCard" id="prev31"></div>
-<div class = "playerCard" id="prev32"></div>
-<div class = "playerCard" id="prev33"></div>
-<div class = "playerCard" id="prev34"></div>
-<div class = "playerCard" id="prev35"></div>
+    <!-- preload images -->
+    <div id="preload">
+      <img
+        src="{% static 'cardImages/0.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/1.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/2.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/3.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/4.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/5.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/6.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/7.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/8.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/9.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/10.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/11.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/12.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/13.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/14.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/15.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/16.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/17.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/18.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/19.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/20.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/21.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/22.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/23.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/24.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/25.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/26.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/27.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/28.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/29.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/30.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/31.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/32.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/33.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/34.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/35.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/36.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/37.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/38.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/39.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/40.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/41.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/42.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/43.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/44.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/45.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/46.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/47.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/48.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/49.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/50.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+      <img
+        src="{% static 'cardImages/51.png' %}"
+        width="1"
+        height="1"
+        alt="Image 01"
+      />
+    </div>
 
-<!-- preload images -->
-<div id="preload">
-   <img src="{% static 'cardImages/1.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/2.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/3.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/4.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/5.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/6.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/7.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/8.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/9.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/10.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/11.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/12.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/13.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/14.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/15.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/16.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/17.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/18.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/19.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/20.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/21.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/22.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/23.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/24.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/25.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/26.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/27.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/28.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/29.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/30.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/31.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/32.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/33.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/34.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/35.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/36.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/37.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/38.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/39.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/40.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/41.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/42.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/43.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/44.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/45.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/46.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/47.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/48.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/49.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/50.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/51.png' %}" width="1" height="1" alt="Image 01" />
-   <img src="{% static 'cardImages/52.png' %}" width="1" height="1" alt="Image 01" />
-   
-   </div>
+    <script src="{% static 'reconnecting-websocket.js' %}"></script>
+    <script src="{% static 'gameFunctions.js' %}"></script>
+    <script src="{% static 'drawingFunctions.js' %}"></script>
+    <script>
+      var nGames = 0;
+      //crucial game info (for drawing)
+      var playersHand = []; //hand player currently has.
+      var selectedHand = []; //cards actually selected at the moment.
+      var nOppCards = [0, 0, 0]; //number of cards each opponent has.
+      var control = 0;
+      var prevHands = [];
+      var playersGo = 1;
+      var gameActive = 1;
+      var sessionScores = [0, 0, 0, 0]; //total scores for this session.
 
-<script src="{% static 'reconnecting-websocket.js' %}"></script>
-<script src="{% static 'gameFunctions.js' %}"></script>
-<script src="{% static 'drawingFunctions.js' %}"></script>
-<script>
-    var nGames = 0;
-    //crucial game info (for drawing)
-    var playersHand = [] //hand player currently has.
-    var selectedHand = [] //cards actually selected at the moment.
-    var nOppCards = [0,0,0] //number of cards each opponent has.
-    var control = 0
-    var prevHands = []
-    var playersGo = 1
-    var gameActive = 1
-    var sessionScores = [0,0,0,0] //total scores for this session.
-    
-    var backOfCard = new Image();
-    backOfCard.onload = function() {
+      var backOfCard = new Image();
+      backOfCard.onload = function () {
         // 一旦背面圖片載入完成，就觸發遊戲畫面更新
         if (nOppCards && nOppCards.length) {
-            fullDrawUpdate();
+          fullDrawUpdate();
         }
-    };
-    backOfCard.src = "{% static 'cardImages/back.jpg' %}";
-    
-    var staticURL = "{% static '' %}";
-    
-    //web socket functions
-    var gameSocket = new ReconnectingWebSocket(
-        'ws://' + window.location.host +
-        '/ws/game/');
-    
-    gameSocket.onmessage = function(e) {
-        var data = JSON.parse(e.data);
-        var messageType = data['type'];
-        if(messageType == "updateGame") {
-            playersGo = data['playersGo'];
-            control = data['control'];
-            prevHands = data['previousHands'];
-            playersHand = data['playersHand'];
-            nOppCards = data['nCards'];
-            gameOver = data['gameOver'];
-            rewards = data['rewards'];
-            
-            if(gameOver==1) {
-                gameActive = 0;
-                for(var k=0; k<4; k++) {
-                    sessionScores[k] += rewards[k];
-                }
-            }
-            
-            fullDrawUpdate();
-        } else if(messageType == "error") {
-            alert(data['error']);
-        }
-    };
-    
-    gameSocket.onclose = function(e) {
-        console.error('Game socket closed.');
-    }
+      };
+      backOfCard.src = "{% static 'cardImages/back.jpg' %}";
 
-    function resetGame() {
-        gameSocket.send(JSON.stringify({
-            'type' : "reset"
-        }));
+      var staticURL = "{% static '' %}";
+
+      //web socket functions
+      var gameSocket = new ReconnectingWebSocket(
+        "ws://" + window.location.host + "/ws/game/"
+      );
+      gameSocket.onmessage = function (e) {
+        var data = JSON.parse(e.data);
+        var messageType = data["type"];
+        if (messageType == "updateGame") {
+          playersGo = data["playersGo"];
+          control = data["control"];
+          prevHands = data["previousHands"];
+          playersHand = data["playersHand"];
+          nOppCards = data["nCards"];
+          gameOver = data["gameOver"];
+          rewards = data["rewards"];
+
+          if (gameOver == 1) {
+            gameActive = 0;
+            for (var k = 0; k < 4; k++) {
+              sessionScores[k] += rewards[k];
+            }
+          }
+
+          fullDrawUpdate();
+        } else if (messageType == "error") {
+          alert(data["error"]);
+        }
+      };
+
+      gameSocket.onclose = function (e) {
+        console.error("Game socket closed.");
+      };
+
+      function resetGame() {
+        gameSocket.send(
+          JSON.stringify({
+            type: "reset",
+          })
+        );
         gameActive = 1;
         selectedHand = [];
         nGames += 1;
-    }
-    
-    function sortNumber(a,b) {
+      }
+
+      function sortNumber(a, b) {
         return a - b;
-    }
-        
-    function getSelectedIndices() {
-        selectedIndices = [];
-        for(var i=0; i<selectedHand.length; i++) {
-            for(var j=0; j<playersHand.length; j++) {
-                if(selectedHand[i] == playersHand[j]) {
-                    selectedIndices.push(j);
-                }
-            }
-        }
-        selectedIndices.sort(sortNumber);
-        return selectedIndices;
-    }
-    
-    function passOrAI() {
-        if(playersGo==1) {
-            pass();
-        } else {
-            makeAIPlay();
-        }
-    }
-    
-    function makeAIPlay() {
-        if(gameActive==0) {
-            alert("Game is finished. Start a new game");
-            return;
-        }
-        if(playersGo==1) {
-            alert("It's your go!");
-            return;
-        } else {
-            gameSocket.send(JSON.stringify({
-                'type' : "AIGo"
-            }));
-            selectedHand = [];
-        }
-    }
-    
-    function pass() {
-        if(gameActive==0) {
-            alert("Game is finished. Start a new game");
-            return;
-        }
-        if(playersGo != 1) {
-            alert("It's not your go!");
-            selectedHand = [];
-            drawPlayersHand();
-            return;
-        } else if(control==1) {
-            alert("You cannot pass when you have control!");
-        } else {
-            gameSocket.send(JSON.stringify({
-                'type' : "pass"
-            }));
-        }
-    }
-    
-    function submitHand() {
-        if(gameActive==0) {
-            alert("Game is finished. Start a new game");
-            return;
-        }
-        if(playersGo != 1) {
-            alert("It's not your go!");
-            selectedHand = [];
-            drawPlayersHand();
-            return;
-        }
-        if(selectedHand.length == 0) {
-            alert("You need to select some cards!");
-            return;
-        } else if(selectedHand.length > 5) {
-            alert("You have selected too many cards!");
-            return;
-        }
-        if(control) {
-            if(isRealHand(selectedHand)) {
-                gameSocket.send(JSON.stringify({
-                    'type' : "submitPlayerHand",
-                    'hand' : getSelectedIndices(selectedHand)
-                }));
-                return;
-            } else {
-                alert("This isn't a real hand!");
-                selectedHand = [];
-                drawPlayersHand();
-                return;
-            }
-        } else { //need to beat previous hand.
-            if(prevHands[2].length == 0) {
-                if(prevHands[1].length == 0) {
-                    previousHand = prevHands[0];
-                } else {
-                    previousHand = prevHands[1];
-                }
-            } else {
-                previousHand = prevHands[2];
-            }
-            if(selectedHand.length != previousHand.length) {
-                alert("You need to play the same number of cards as the previous hand!");
-                selectedHand = [];
-                drawPlayersHand();
-                return;
-            } else if(!isRealHand(selectedHand)) {
-                alert("You need to play a real hand!");
-                selectedHand = [];
-                drawPlayersHand();
-                return;
-            } else if(!compareHands(selectedHand, previousHand)) {
-                alert("Hand selected doesn't beat the previous hand!");
-                selectedHand = []
-                drawPlayersHand();
-                return;
-            } else {
-                gameSocket.send(JSON.stringify({
-                    'type' : "submitPlayerHand",
-                    'hand' : getSelectedIndices(selectedHand)
-                }));
-                selectedHand = []
-            }
-        }
-    }
+      }
 
-</script>
+      function passOrAI() {
+        if (playersGo == 1) {
+          pass();
+        } else {
+          makeAIPlay();
+        }
+      }
 
-</body>
+      function makeAIPlay() {
+        if (gameActive == 0) {
+          alert("Game is finished. Start a new game");
+          return;
+        }
+        if (playersGo == 1) {
+          alert("It's your go!");
+          return;
+        } else {
+          gameSocket.send(
+            JSON.stringify({
+              type: "AIGo",
+            })
+          );
+          selectedHand = [];
+        }
+      }
 
+      function pass() {
+        if (gameActive == 0) {
+          alert("Game is finished. Start a new game");
+          return;
+        }
+        if (playersGo != 1) {
+          alert("It's not your go!");
+          selectedHand = [];
+          drawPlayersHand();
+          return;
+        } else if (control == 1) {
+          alert("You cannot pass when you have control!");
+        } else {
+          gameSocket.send(
+            JSON.stringify({
+              type: "pass",
+            })
+          );
+        }
+      }
+
+      function submitHand() {
+        if (gameActive == 0) {
+          alert("Game is finished. Start a new game");
+          return;
+        }
+        if (playersGo != 1) {
+          alert("It's not your go!");
+          selectedHand = [];
+          drawPlayersHand();
+          return;
+        }
+        gameSocket.send(
+          JSON.stringify({
+            type: "submitPlayerHand",
+            hand: selectedHand,
+          })
+        );
+        selectedHand = [];
+      }
+    </script>
+  </body>
 </html>
