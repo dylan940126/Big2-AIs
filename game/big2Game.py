@@ -19,21 +19,12 @@ class handPlayed:
         self.hand = hand
         self.player = player
         self.nCards = len(hand)
-        if self.nCards <= 3:
-            self.type = 1
-        elif self.nCards == 4:
-            if gameLogic.isFourOfAKind(hand):
-                self.type = 2
-            else:
-                self.type = 1
-        elif self.nCards == 5:
+        if self.nCards == 5:
             if gameLogic.isStraight(hand):
                 if gameLogic.isFlush(hand):
                     self.type = 4
                 else:
                     self.type = 1
-            elif gameLogic.isFlush(hand):
-                self.type = 2
             else:
                 self.type = 3
 
@@ -50,36 +41,234 @@ class big2Game:
         self.currentHands[3] = np.sort(shuffledDeck[26:39])
         self.currentHands[4] = np.sort(shuffledDeck[39:52])
         self.cardsPlayed = np.zeros((4,52), dtype=int)
-        #找出擁有梅花三(3C)的玩家 - 這張牌會被首先打出
-        threeClubInd = np.where(shuffledDeck == 1)[0][0]  # 梅花三的編號是1
-        if threeClubInd < 13:
-            whoHas3C = 1
-        elif threeClubInd < 26:
-            whoHas3C = 2
-        elif threeClubInd < 39:
-            whoHas3C = 3
+        #who has 3D - this gets played
+        for i in range(52):
+            if shuffledDeck[i] == 1:
+                threeDiamondInd = i
+                break
+        if threeDiamondInd < 13:
+            whoHas3D = 1
+        elif threeDiamondInd < 26:
+            whoHas3D = 2
+        elif threeDiamondInd < 39:
+            whoHas3D = 3
         else:
-            whoHas3C = 4
-        self.currentHands[whoHas3C] = self.currentHands[whoHas3C][1:]
-        self.cardsPlayed[whoHas3C-1][0] = 1  # 梅花三(3C)的索引是0（1-1）
+            whoHas3D = 4
+        self.currentHands[whoHas3D] = self.currentHands[whoHas3D][1:]
+        self.cardsPlayed[whoHas3D-1][0] = 1
         self.goIndex = 1
         self.handsPlayed = {}
-        self.handsPlayed[self.goIndex] = handPlayed([1], whoHas3C)  # 梅花三(3C)的編號是1
+        self.handsPlayed[self.goIndex] = handPlayed([1],whoHas3D)
         self.goIndex += 1
-        self.playersGo = whoHas3C + 1
+        self.playersGo = whoHas3D + 1
         if self.playersGo == 5:
             self.playersGo = 1
         self.passCount = 0
         self.control = 0
+        self.neuralNetworkInputs = {}
+        self.neuralNetworkInputs[1] = np.zeros((412,), dtype=int)
+        self.neuralNetworkInputs[2] = np.zeros((412,), dtype=int)
+        self.neuralNetworkInputs[3] = np.zeros((412,), dtype=int)
+        self.neuralNetworkInputs[4] = np.zeros((412,), dtype=int)
+        nPlayerInd = 22*13
+        nnPlayerInd = nPlayerInd + 27
+        nnnPlayerInd = nnPlayerInd + 27
+        #initialize number of cards
+        for i in range(1,5):
+            self.neuralNetworkInputs[i][nPlayerInd+12]=1
+            self.neuralNetworkInputs[i][nnPlayerInd+12]=1
+            self.neuralNetworkInputs[i][nnnPlayerInd+12]=1
+        self.fillNeuralNetworkHand(1)
+        self.fillNeuralNetworkHand(2)
+        self.fillNeuralNetworkHand(3)
+        self.fillNeuralNetworkHand(4)
+        self.updateNeuralNetworkInputs(np.array([1]),whoHas3D)
         self.gameOver = 0
         self.rewards = np.zeros((4,))
         self.goCounter = 0
+        
+    def fillNeuralNetworkHand(self,player):
+        handOptions = gameLogic.handsAvailable(self.currentHands[player])
+        sInd = 0
+        self.neuralNetworkInputs[player][sInd:22*13] = 0
+        for i in range(len(self.currentHands[player])):
+            value = handOptions.cards[self.currentHands[player][i]].value
+            suit = handOptions.cards[self.currentHands[player][i]].suit
+            self.neuralNetworkInputs[player][sInd+int(value)-1] = 1
+            if suit == 1:
+                self.neuralNetworkInputs[player][sInd+13] = 1
+            elif suit == 2:
+                self.neuralNetworkInputs[player][sInd+14] = 1
+            elif suit == 3:
+                self.neuralNetworkInputs[player][sInd+15] = 1
+            else:
+                self.neuralNetworkInputs[player][sInd+16] = 1
+            if handOptions.cards[self.currentHands[player][i]].inPair:
+                self.neuralNetworkInputs[player][sInd+17] = 1
+            if handOptions.cards[self.currentHands[player][i]].inThreeOfAKind:
+                self.neuralNetworkInputs[player][sInd+18] = 1
+            if handOptions.cards[self.currentHands[player][i]].inFourOfAKind:
+                self.neuralNetworkInputs[player][sInd+19] = 1
+            if handOptions.cards[self.currentHands[player][i]].inStraight:
+                self.neuralNetworkInputs[player][sInd+20] = 1
+            if handOptions.cards[self.currentHands[player][i]].inFlush:
+                self.neuralNetworkInputs[player][sInd+21] = 1
+            sInd += 22
+    
+    def updateNeuralNetworkPass(self, cPlayer):
+        #this is a bit of a mess tbh, some things are unnecessary.
+        phInd = 22*13 + 27 + 27 + 27 + 16
+        nPlayer = cPlayer-1
+        if nPlayer == 0:
+            nPlayer = 4
+        nnPlayer = nPlayer - 1
+        if nnPlayer == 0:
+            nnPlayer = 4
+        nnnPlayer = nnPlayer - 1
+        if nnnPlayer == 0:
+            nnnPlayer = 4
+        if self.passCount < 2:
+            #no control - prev hands remain same
+            self.neuralNetworkInputs[nPlayer][phInd+26:] = 0
+            self.neuralNetworkInputs[nnPlayer][phInd+26:] = 0
+            self.neuralNetworkInputs[nnnPlayer][phInd+26:] = 0
+            if self.passCount == 0:
+                self.neuralNetworkInputs[nPlayer][phInd+27] = 1
+                self.neuralNetworkInputs[nnPlayer][phInd+27] = 1
+                self.neuralNetworkInputs[nnnPlayer][phInd+27] = 1
+            else:
+                self.neuralNetworkInputs[nPlayer][phInd+28] = 1
+                self.neuralNetworkInputs[nnPlayer][phInd+28] = 1
+                self.neuralNetworkInputs[nnnPlayer][phInd+28] = 1
+        else:
+            #next player is gaining control.
+            self.neuralNetworkInputs[nPlayer][phInd:] = 0
+            self.neuralNetworkInputs[nnPlayer][phInd:] = 0
+            self.neuralNetworkInputs[nnnPlayer][phInd:] = 0
+            self.neuralNetworkInputs[nnnPlayer][phInd+17] = 1
+    
+    def updateNeuralNetworkInputs(self,prevHand, cPlayer):
+        self.fillNeuralNetworkHand(cPlayer)
+        nPlayer = cPlayer-1
+        if nPlayer == 0:
+            nPlayer = 4
+        nnPlayer = nPlayer - 1
+        if nnPlayer == 0:
+            nnPlayer = 4
+        nnnPlayer = nnPlayer - 1
+        if nnnPlayer == 0:
+            nnnPlayer = 4
+        nCards = self.currentHands[cPlayer].size
+        cardsOfNote = np.intersect1d(prevHand, np.arange(45,53))
+        nPlayerInd = 22*13
+        nnPlayerInd = nPlayerInd + 27
+        nnnPlayerInd = nnPlayerInd + 27
+        #next player
+        self.neuralNetworkInputs[nPlayer][nPlayerInd:(nPlayerInd+13)] = 0
+        self.neuralNetworkInputs[nPlayer][nPlayerInd+nCards-1] = 1 #number of cards
+        #next next player
+        self.neuralNetworkInputs[nnPlayer][nnPlayerInd:(nnPlayerInd+13)] = 0
+        self.neuralNetworkInputs[nnPlayer][nnPlayerInd + nCards-1] = 1
+        #next next next player
+        self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd:(nnnPlayerInd+13)] = 0
+        self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd + nCards-1] = 1
+        for val in cardsOfNote:
+            self.neuralNetworkInputs[nPlayer][nPlayerInd+13+(val-45)] = 1
+            self.neuralNetworkInputs[nnPlayer][nnPlayerInd+13+(val-45)] = 1
+            self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd+13+(val-45)] = 1
+        #prevHand
+        phInd = nnnPlayerInd + 27 + 16
+        self.neuralNetworkInputs[nPlayer][phInd:] = 0
+        self.neuralNetworkInputs[nnPlayer][phInd:] = 0
+        self.neuralNetworkInputs[nnnPlayer][phInd:] = 0
+        self.neuralNetworkInputs[cPlayer][phInd:] = 0
+        nCards = prevHand.size
+        
+        if nCards == 2:
+            self.neuralNetworkInputs[nPlayer][nPlayerInd+21] = 1
+            self.neuralNetworkInputs[nnPlayer][nnPlayerInd+21] = 1
+            self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd+21] = 1
+            value = int(gameLogic.cardValue(prevHand[1]))
+            suit = prevHand[1] % 4
+            self.neuralNetworkInputs[nPlayer][phInd+19] = 1
+            self.neuralNetworkInputs[nnPlayer][phInd+19] = 1
+            self.neuralNetworkInputs[nnnPlayer][phInd+19] = 1
+        elif nCards == 5:
+            #import pdb; pdb.set_trace()
+            if gameLogic.isStraight(prevHand):
+                self.neuralNetworkInputs[nPlayer][nPlayerInd+24] = 1
+                self.neuralNetworkInputs[nnPlayer][nnPlayerInd+24] = 1
+                self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd+24] = 1
+                value = int(gameLogic.cardValue(prevHand[4]))
+                suit = prevHand[4] % 4
+                self.neuralNetworkInputs[nPlayer][phInd+23] = 1
+                self.neuralNetworkInputs[nnPlayer][phInd+23] = 1
+                self.neuralNetworkInputs[nnnPlayer][phInd+23] = 1
+            if gameLogic.isFlush(prevHand):
+                self.neuralNetworkInputs[nPlayer][nPlayerInd + 25] = 1
+                self.neuralNetworkInputs[nnPlayer][nnPlayerInd + 25] = 1
+                self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd+25] = 1
+                value = int(gameLogic.cardValue(prevHand[4]))
+                suit = prevHand[4] % 4
+                self.neuralNetworkInputs[nPlayer][phInd+24] = 1
+                self.neuralNetworkInputs[nnPlayer][phInd+24] = 1
+                self.neuralNetworkInputs[nnnPlayer][phInd+24] = 1
+            elif gameLogic.isFullHouse(prevHand):
+                self.neuralNetworkInputs[nPlayer][nPlayerInd + 26] = 1
+                self.neuralNetworkInputs[nnPlayer][nnPlayerInd + 26] = 1
+                self.neuralNetworkInputs[nnnPlayer][nnnPlayerInd + 26] = 1
+                value = int(gameLogic.cardValue(prevHand[2]))
+                suit = -1
+                self.neuralNetworkInputs[nPlayer][phInd+25] = 1
+                self.neuralNetworkInputs[nnPlayer][phInd+25] = 1
+                self.neuralNetworkInputs[nnnPlayer][phInd+25] = 1
+        else:
+            value = int(gameLogic.cardValue(prevHand[0]))
+            suit = prevHand[0] % 4
+            self.neuralNetworkInputs[nPlayer][phInd+18] = 1
+            self.neuralNetworkInputs[nnPlayer][phInd+18] = 1
+            self.neuralNetworkInputs[nnnPlayer][phInd+18] = 1
+        self.neuralNetworkInputs[nPlayer][phInd+value-1] = 1
+        self.neuralNetworkInputs[nnPlayer][phInd+value-1] = 1
+        self.neuralNetworkInputs[nnnPlayer][phInd+value-1] = 1
+        if suit == 1:
+            self.neuralNetworkInputs[nPlayer][phInd+13] = 1
+            self.neuralNetworkInputs[nnPlayer][phInd+13] = 1
+            self.neuralNetworkInputs[nnnPlayer][phInd+13] = 1
+        elif suit == 2:
+            self.neuralNetworkInputs[nPlayer][phInd+14] = 1
+            self.neuralNetworkInputs[nnPlayer][phInd+14] = 1
+            self.neuralNetworkInputs[nnnPlayer][phInd+14] = 1
+        elif suit == 3:
+            self.neuralNetworkInputs[nPlayer][phInd+15] = 1
+            self.neuralNetworkInputs[nnPlayer][phInd+15] = 1
+            self.neuralNetworkInputs[nnnPlayer][phInd+15] = 1
+        elif suit == 0:
+            self.neuralNetworkInputs[nPlayer][phInd+16] = 1
+            self.neuralNetworkInputs[nnPlayer][phInd+16] = 1
+            self.neuralNetworkInputs[nnnPlayer][phInd+16] = 1
+        #general - common to all hands.
+        cardsRecord = np.intersect1d(prevHand, np.arange(37,53))
+        endInd = nnnPlayerInd + 27
+        for val in cardsRecord:
+            self.neuralNetworkInputs[1][endInd+(val-37)] = 1
+            self.neuralNetworkInputs[2][endInd+(val-37)] = 1
+            self.neuralNetworkInputs[3][endInd+(val-37)] = 1
+            self.neuralNetworkInputs[4][endInd+(val-37)] = 1
+        #no passes.
+        self.neuralNetworkInputs[nPlayer][phInd+26] = 1
+        self.neuralNetworkInputs[nnPlayer][phInd+26] = 1
+        self.neuralNetworkInputs[nnnPlayer][phInd+26] = 1
+        self.neuralNetworkInputs[nPlayer][phInd+27:] = 0
+        self.neuralNetworkInputs[nnPlayer][phInd+27:] = 0
+        self.neuralNetworkInputs[nnnPlayer][phInd+27:] = 0                
     
     def updateGame(self, option, nCards=0):
         self.goCounter += 1
         if option == -1:
             #they pass
             cPlayer = self.playersGo
+            self.updateNeuralNetworkPass(cPlayer)
             self.playersGo += 1
             if self.playersGo == 5:
                 self.playersGo = 1
@@ -93,10 +282,6 @@ class big2Game:
             handToPlay = np.array([self.currentHands[self.playersGo][option]])
         elif nCards == 2:
             handToPlay = self.currentHands[self.playersGo][enumerateOptions.inverseTwoCardIndices[option]]
-        elif nCards == 3:
-            handToPlay = self.currentHands[self.playersGo][enumerateOptions.inverseThreeCardIndices[option]]
-        elif nCards == 4:
-            handToPlay = self.currentHands[self.playersGo][enumerateOptions.inverseFourCardIndices[option]]
         else:
             handToPlay = self.currentHands[self.playersGo][enumerateOptions.inverseFiveCardIndices[option]]
         for i in handToPlay:
@@ -109,6 +294,7 @@ class big2Game:
             self.assignRewards()
             self.gameOver = 1
             return
+        self.updateNeuralNetworkInputs(handToPlay, self.playersGo)
         self.playersGo += 1
         if self.playersGo == 5:
             self.playersGo = 1
@@ -135,19 +321,9 @@ class big2Game:
                 options = enumerateOptions.oneCardOptions(cHand,prevHand,1)
             elif nCards == 2:
                 options = enumerateOptions.twoCardOptions(handOptions, prevHand, 1)
-            elif nCards == 3:
-                options = enumerateOptions.threeCardOptions(handOptions, prevHand, 1)
-            elif nCards == 4:
-                if gameLogic.isFourOfAKind(prevHand):
-                    options = enumerateOptions.fourCardOptions(handOptions, prevHand, 2)
-                else:
-                    options = enumerateOptions.fourCardOptions(handOptions, prevHand, 1)
             else:
                 if gameLogic.isStraight(prevHand):
-                    if gameLogic.isFlush(prevHand):
-                        options = enumerateOptions.fiveCardOptions(handOptions, prevHand, 4)
-                    else:
-                        options = enumerateOptions.fiveCardOptions(handOptions, prevHand, 1)
+                    options = enumerateOptions.fiveCardOptions(handOptions, prevHand, 1)
                 elif gameLogic.isFlush(prevHand):
                     options = enumerateOptions.fiveCardOptions(handOptions, prevHand, 2)
                 else:
@@ -166,8 +342,6 @@ class big2Game:
             handOptions = gameLogic.handsAvailable(cHand)
             oneCardOptions = enumerateOptions.oneCardOptions(cHand)
             twoCardOptions = enumerateOptions.twoCardOptions(handOptions)
-            threeCardOptions = enumerateOptions.threeCardOptions(handOptions)
-            fourCardOptions = enumerateOptions.fourCardOptions(handOptions)
             fiveCardOptions = enumerateOptions.fiveCardOptions(handOptions)
             if isinstance(oneCardOptions, int):
                 n1 = 0
@@ -175,32 +349,18 @@ class big2Game:
                 n1 = len(oneCardOptions)
             if isinstance(twoCardOptions, int):
                 n2 = 0
-            else:
-                n2 = len(twoCardOptions)
-            if isinstance(threeCardOptions, int):
-                n3 = 0
-            else:
-                n3 = len(threeCardOptions)
-            if isinstance(fourCardOptions, int):
-                n4 = 0
-            else:
-                n4 = len(fourCardOptions)
             if isinstance(fiveCardOptions, int):
                 n5 = 0
             else:
                 n5 = len(fiveCardOptions)
-            nTot = n1 + n2 + n3 + n4 + n5
+            nTot = n1 + n2 + n5
             ind = random.randint(0,nTot-1)
             if ind < n1:
                 return (oneCardOptions[ind],1)
             elif ind < (n1+n2):
                 return (twoCardOptions[ind-n1],2)
-            elif ind < (n1+n2+n3):
-                return (threeCardOptions[ind-n1-n2],3)
-            elif ind < (n1+n2+n3+n4):
-                return (fourCardOptions[ind-n1-n2-n3],4)
             else:
-                return (fiveCardOptions[ind-n1-n2-n3-n4],5)
+                return (fiveCardOptions[ind-n1-n2],5)
             
     def returnAvailableActions(self):
     
@@ -221,19 +381,9 @@ class big2Game:
                 options = enumerateOptions.oneCardOptions(currHand, prevHand,1)
             elif nCardsToBeat == 2:
                 options = enumerateOptions.twoCardOptions(handOptions, prevHand, 1)
-            elif nCardsToBeat == 3:
-                options = enumerateOptions.threeCardOptions(handOptions, prevHand, 1)
-            elif nCardsToBeat == 4:
-                if gameLogic.isFourOfAKind(prevHand):
-                    options = enumerateOptions.fourCardOptions(handOptions, prevHand, 2)
-                else:
-                    options = enumerateOptions.fourCardOptions(handOptions, prevHand, 1)
             else:
                 if gameLogic.isStraight(prevHand):
-                    if gameLogic.isFlush(prevHand):
-                        options = enumerateOptions.fiveCardOptions(handOptions, prevHand, 4)
-                    else:
-                        options = enumerateOptions.fiveCardOptions(handOptions, prevHand, 1)
+                    options = enumerateOptions.fiveCardOptions(handOptions, prevHand, 1)
                 elif gameLogic.isFlush(prevHand):
                     options = enumerateOptions.fiveCardOptions(handOptions, prevHand, 2)
                 else:
@@ -253,8 +403,6 @@ class big2Game:
             handOptions = gameLogic.handsAvailable(currHand)
             oneCardOptions = enumerateOptions.oneCardOptions(currHand)
             twoCardOptions = enumerateOptions.twoCardOptions(handOptions)
-            threeCardOptions = enumerateOptions.threeCardOptions(handOptions)
-            fourCardOptions = enumerateOptions.fourCardOptions(handOptions)
             fiveCardOptions = enumerateOptions.fiveCardOptions(handOptions)
             
             for option in oneCardOptions:
@@ -264,16 +412,6 @@ class big2Game:
             if not isinstance(twoCardOptions, int):
                 for option in twoCardOptions:
                     index = enumerateOptions.getIndex(option, 2)
-                    availableActions[index] = 1
-                    
-            if not isinstance(threeCardOptions, int):
-                for option in threeCardOptions:
-                    index = enumerateOptions.getIndex(option, 3)
-                    availableActions[index] = 1
-                    
-            if not isinstance(fourCardOptions, int):
-                for option in fourCardOptions:
-                    index = enumerateOptions.getIndex(option, 4)
                     availableActions[index] = 1
                     
             if not isinstance(fiveCardOptions, int):
@@ -296,10 +434,12 @@ class big2Game:
             info = {}
             info['numTurns'] = self.goCounter
             info['rewards'] = self.rewards
+            #what else is worth monitoring?            
+            #self.reset()
         return reward, done, info
     
     def getCurrentState(self):
-        return self.playersGo, None, convertAvailableActions(self.returnAvailableActions()).reshape(1,1695)
+        return self.playersGo, self.neuralNetworkInputs[self.playersGo].reshape(1,412), convertAvailableActions(self.returnAvailableActions()).reshape(1,1695)
         
     def getInfoForDrawing(self):
         prevHands = []
