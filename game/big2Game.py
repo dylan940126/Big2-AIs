@@ -1,5 +1,5 @@
 # big 2 class
-from .gameLogic import CardPlay, PlayerHandCard, PlayType, Card
+from .gameLogic import CardPlay, PlayerHandCard, PlayType
 
 import numpy as np
 import random
@@ -23,8 +23,9 @@ class big2Game:
             PlayerHandCard(cards[39:52]),
         ]
         for i in range(4):
-            if Card(0) in self.PlayersHand[i].handcards:
+            if self.PlayersHand[i].handcards[0] == 0:
                 self.playersGo = i
+                break
 
         self.playHistory = []
 
@@ -45,9 +46,10 @@ class big2Game:
             raise ValueError("Invalid play")
         currentPlayerHand.remove_played_cards(play)
         self.playHistory.append(play)
-        self.playersGo = (self.playersGo + 1) % 4
         if self.isGameOver():
             self.assignRewards()
+            return
+        self.playersGo = (self.playersGo + 1) % 4
 
     def getHistory(self, length: int | None = None, no_pass: bool = False):
         """
