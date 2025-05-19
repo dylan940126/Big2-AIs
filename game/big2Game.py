@@ -1,5 +1,5 @@
 # big 2 class
-from .gameLogic import CardPlay, PlayerHandCard, PlayType
+from gameLogic import CardPlay, PlayerHandCard, PlayType
 
 import numpy as np
 import random

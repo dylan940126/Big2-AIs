@@ -1,7 +1,10 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
-from . import big2Game
+from big2Game import big2Game
 import random
+import numpy as np
+from cnnAgent import CNNBot, hand_to_matrix, play_to_matrix
+from cardEstimator import estimate_opponent_cards  # <- use dummy for now
 
 
 class RandomAgent:
@@ -16,6 +19,8 @@ class RandomAgent:
 
 
 random_agent = RandomAgent()
+
+cnn_agent = CNNBot(model_path="cnn_model.pt", device="cpu")  # Adjust path/device
 
 
 class GameConsumer(AsyncWebsocketConsumer):
@@ -37,6 +42,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         # when we receive something from client side.
         data = json.loads(text_data)
         # import pdb; pdb.set_trace()
+        """
         if data["type"] == "AIGo":
             pGo, history, availAcs = self.game.getCurrentState()
             print(
@@ -45,6 +51,41 @@ class GameConsumer(AsyncWebsocketConsumer):
             action = random_agent.step(history, availAcs)
             self.game.step(action)
             await self.sendCurrentGameState()
+        """
+        if data["type"] == "AIGo":
+            pGo, history, availAcs = self.game.getCurrentState()
+
+            if len(availAcs) == 0:
+                self.game.step(big2Game.CardPlay([]))
+                await self.sendCurrentGameState()
+                return
+
+            hand_matrix = hand_to_matrix(self.game.PlayersHand[pGo])
+
+            played_cards = [p for p in self.game.playHistory if p.get_type() != big2Game.PlayType.PASS]
+            remaining_counts = [len(self.game.PlayersHand[i]) for i in range(4) if i != pGo]
+
+            predicted_matrix_3 = estimate_opponent_cards(
+                current_hand=hand_matrix,
+                played_cards=played_cards,
+                remaining_counts=remaining_counts,
+                history=self.game.playHistory
+            )
+
+            predicted_matrix = np.mean(predicted_matrix_3, axis=0)  # collapse 3x4x13 to 4x13
+
+            try:
+                action = cnn_agent.step(predicted_matrix, hand_matrix, availAcs)
+                self.game.step(action)
+            except ValueError as e:
+                await self.send(text_data=json.dumps({
+                    "type": "error",
+                    "error": str(e)
+                }))
+                return
+
+            await self.sendCurrentGameState()
+
         elif data["type"] == "reset":
             self.game.reset()
             await self.sendCurrentGameState()
@@ -100,3 +141,55 @@ class GameConsumer(AsyncWebsocketConsumer):
                     await self.send(
                         text_data=json.dumps({"type": "error", "error": str(e)})
                     )
+        elif data["type"] == "autoPlay":
+            self.games_played = 0
+            self.total_wins = [0, 0, 0, 0]
+            self.total_rewards = [0, 0, 0, 0]
+            await self.runAutoPlay(num_games=1000)
+
+    async def runAutoPlay(self, num_games):
+        while self.games_played < num_games:
+            if self.game.isGameOver():
+                self.game.assignRewards()
+                winner = int(np.argmax(self.game.rewards))
+                self.total_wins[winner] += 1
+                for i in range(4):
+                    self.total_rewards[i] += self.game.rewards[i]
+
+                self.games_played += 1
+                self.game.reset()
+                continue
+
+            pGo, history, availAcs = self.game.getCurrentState()
+
+            if len(availAcs) == 0:
+                self.game.step(big2Game.CardPlay([]))
+                continue
+
+            hand_matrix = hand_to_matrix(self.game.PlayersHand[pGo])
+            played_cards = [p for p in self.game.playHistory if p.get_type() != big2Game.PlayType.PASS]
+            remaining_counts = [len(self.game.PlayersHand[i]) for i in range(4) if i != pGo]
+
+            predicted_matrix_3 = estimate_opponent_cards(
+                current_hand=hand_matrix,
+                played_cards=played_cards,
+                remaining_counts=remaining_counts,
+                history=self.game.playHistory
+            )
+
+            predicted_matrix = np.mean(predicted_matrix_3, axis=0)
+
+            try:
+                action = cnn_agent.step(predicted_matrix, hand_matrix, availAcs)
+                self.game.step(action)
+            except ValueError:
+                self.game.step(big2Game.CardPlay([]))
+
+        # Done with all games
+        await self.send(text_data=json.dumps({
+            "type": "autoDone",
+            "message": f"{num_games} games completed.",
+            "totalWins": self.total_wins,
+            "totalRewards": self.total_rewards,
+            "winRates": [round(w / num_games, 3) for w in self.total_wins]
+        }))

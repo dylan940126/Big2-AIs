@@ -1,7 +1,7 @@
 from typing import List
-from .cards import CardPlay, PlayType, convert_index_to_str
+from cards import CardPlay, PlayType, convert_index_to_str
 import numpy as np
-from .enumerateOptions import AllPlays
+from enumerateOptions import AllPlays
 
 
 class PlayerHandCard:

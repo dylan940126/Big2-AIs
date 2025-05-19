@@ -16,11 +16,16 @@
       onclick="submitHand();"
       style="top: 570px; left: 1050px"
     >
+
       Play Hand
     </div>
     <div class="button" onclick="passOrAI();" style="top: 605px; left: 1050px">
       Pass/ Make AI Play
     </div>
+    <div class="button" onclick="triggerAutoPlay();" style="top: 675px; left: 1050px">
+      AutoPlay
+    </div>
+
     <div
       class="button"
       id="newGame"
@@ -413,6 +418,7 @@
       var gameSocket = new ReconnectingWebSocket(
         "ws://" + window.location.host + "/ws/game/"
       );
+      /*
       gameSocket.onmessage = function (e) {
         var data = JSON.parse(e.data);
         var messageType = data["type"];
@@ -437,6 +443,33 @@
           alert(data["error"]);
         }
       };
+      */
+     gameSocket.onmessage = function (e) {
+      var data = JSON.parse(e.data);
+      var messageType = data["type"];
+      if (messageType == "updateGame") {
+        playersGo = data["playersGo"];
+        control = data["control"];
+        prevHands = data["previousHands"];
+        playersHand = data["playersHand"];
+        nOppCards = data["nCards"];
+        gameOver = data["gameOver"];
+        rewards = data["rewards"];
+
+        if (gameOver == 1) {
+          gameActive = 0;
+          for (var k = 0; k < 4; k++) {
+            sessionScores[k] += rewards[k];
+          }
+        }
+
+        fullDrawUpdate();
+      } else if (messageType == "autoDone") {
+        alert("✅ AutoPlay complete: " + data.message);
+      } else if (messageType == "error") {
+        console.error("❌ Error from server:", data["error"]);
+      }
+    };
 
       gameSocket.onclose = function (e) {
         console.error("Game socket closed.");
@@ -464,6 +497,14 @@
           makeAIPlay();
         }
       }
+      function triggerAutoPlay() {
+        gameSocket.send(
+          JSON.stringify({
+            type: "autoPlay",
+          })
+        );
+      }
+
 
       function makeAIPlay() {
         if (gameActive == 0) {
@@ -523,6 +564,7 @@
         );
         selectedHand = [];
       }
+      
     </script>
   </body>
 </html>
