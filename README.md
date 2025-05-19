@@ -15,8 +15,15 @@ source big2/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
-# Run the server
-python manage.py runserver
 ```
 
+### Run web game
+```bash
+python manage.py runserver
+```
 Once the server is running, open your browser and go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
+
+### game simulation
+```bash
+python run_random_agents.py
+```
