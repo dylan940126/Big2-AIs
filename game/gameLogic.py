@@ -47,7 +47,7 @@ class PlayerHandCard:
         # 篩選可出牌型
         available_plays = []
         # 是否有梅花三，要第一個出牌
-        if self.handcards[0] == 0:
+        if self.handcards.size > 0 and self.handcards[0] == 0:
             for type, plays_in_type in self.player_available_plays.items():
                 available_plays.extend(
                     plays_in_type[np.isin(plays_in_type, [0]).any(axis=1)]
