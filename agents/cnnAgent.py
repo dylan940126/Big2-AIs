@@ -10,7 +10,7 @@ from typing import List, Tuple
 # ---------------------------
 # CNN Model Architecture
 # ---------------------------
-class Big2CNN(nn.Module):
+class Big2CNN_old(nn.Module):
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(5, 32, kernel_size=(4, 5), padding=(0, 2))
@@ -24,6 +24,27 @@ class Big2CNN(nn.Module):
         x = F.relu(self.conv1(x))  # (B, 32, 1, 13)
         x = F.relu(self.conv2(x))  # (B, 64, 1, 13)
         x = x.flatten(start_dim=1)  # Flatten to (B, 64 * 1 * 13)
+        x = F.relu(self.fc1(x))  # (B, 128)
+        x = self.fc2(x)  # (B, 1)
+        return x
+    
+class Big2CNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(5, out_channels=32, kernel_size=(4, 1), padding=0)
+        self.conv2 = nn.Conv2d(5, 32, kernel_size=(1, 5), padding=0)
+        self.fc1 = nn.Linear(32 * 1 * 13 + 32 * 4 * 9 + 5 * 4 * 13, 128)
+        self.fc2 = nn.Linear(128, 1)
+
+    def forward(self, x) -> Tensor:
+        if x.shape == (5, 4, 13):
+            x = x.unsqueeze(0)
+        x1 = F.relu(self.conv1(x))  # (B, 32, 1, 13)
+        x1 = x1.flatten(start_dim=1) # Flatten to (B, 32 * 1 * 13)
+        x2 = F.relu(self.conv2(x))  # (B, 32, 4, 9)
+        x2 = x2.flatten(start_dim=1) # Flatten to (B, 32 * 4 * 9)
+        x = x.flatten(start_dim=1)  # Flatten to (B, 5 * 4 * 13)
+        x = torch.cat((x, x1, x2), dim=1) # (B, 5 * 4 * 13 + 32 * 1 * 13 + 32 * 4 * 9)
         x = F.relu(self.fc1(x))  # (B, 128)
         x = self.fc2(x)  # (B, 1)
         return x
@@ -42,10 +63,10 @@ class CNNAgent(Agent):
         train: bool = False,
         gamma: float = 0.99,
         epsilon: float = 0.1,  # for epsilon-greedy exploration
-        epsilon_min: float = 0.01,  # minimum epsilon value
+        epsilon_min: float = 0.001,  # minimum epsilon value
         epsilon_decay: float = 0.995,  # epsilon decay rate
-        lr: float = 1e-4,  # initial learning rate
-        lr_min: float = 1e-6,  # minimum learning rate
+        lr: float = 1e-3,  # initial learning rate
+        lr_min: float = 1e-4,  # minimum learning rate
         lr_decay: float = 0.999,  # learning rate decay rate
     ):
         if device == "Auto":
@@ -64,20 +85,21 @@ class CNNAgent(Agent):
         self.model.train(train)
         self.history_data = []
         self.train = train
-        
+
         # Epsilon-greedy parameters
         self.epsilon = epsilon
         self.epsilon_min = epsilon_min
         self.epsilon_decay = epsilon_decay
-        
+
         # Learning rate parameters
         self.lr = lr
         self.lr_min = lr_min
         self.lr_decay = lr_decay
-        
+
         if train:
-            self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr,
-                                               weight_decay=1e-5)
+            self.optimizer = torch.optim.AdamW(
+                self.model.parameters(), lr=self.lr, weight_decay=1e-5
+            )
             self.criterion = nn.MSELoss()
             self.gamma = gamma
 
@@ -110,13 +132,22 @@ class CNNAgent(Agent):
         )  # (batch_size, 5, 4, 13)
         return input_tensor
 
-    def predict_opponent_hands(self) -> torch.Tensor:
-        """
-        Placeholder for opponent hand prediction logic.
-        This should return a 3D tensor of shape (3, 4, 13) representing the predicted hands.
-        """
-        # For now, return a dummy tensor
-        return torch.zeros((3, 4, 13), dtype=torch.float32, device=self.device)
+    def assign_opponent_hands(self, history: list[CardPlay]) -> torch.Tensor:
+        predicted_hands = torch.zeros(
+            (3, 4, 13), dtype=torch.float32, device=self.device
+        )
+        for i in range(3):
+            player_history = history[-1 - i :: -4]
+            cards = [card for play in player_history for card in play.cards]
+            if cards:
+                cards_tensor = torch.tensor(
+                    cards, dtype=torch.int64, device=self.device
+                )
+                suit = cards_tensor % 4
+                rank = cards_tensor // 4
+                predicted_hands[i, suit, rank] = 1
+
+        return predicted_hands
 
     def step(
         self,
@@ -134,7 +165,7 @@ class CNNAgent(Agent):
         # Prepare input tensors for all available actions
         with torch.no_grad():
             hand_matrix = self.hand_to_matrix(handcards)  # (4, 13)
-            predicted_opponent_hands = self.predict_opponent_hands()  # (3, 4, 13)
+            predicted_opponent_hands = self.assign_opponent_hands(history)  # (3, 4, 13)
             play_matrices = torch.stack(
                 [self.play_to_matrix(play) for play in available_actions]
             )  # (batch_size, 4, 13)
@@ -189,7 +220,7 @@ class CNNAgent(Agent):
             self.lr = max(self.lr_min, self.lr * self.lr_decay)
             # Update the optimizer's learning rate
             for param_group in self.optimizer.param_groups:
-                param_group['lr'] = self.lr
+                param_group["lr"] = self.lr
 
     def update_hyperparameters(self):
         """
@@ -206,10 +237,10 @@ class CNNAgent(Agent):
             dict: Dictionary containing current epsilon and learning rate
         """
         return {
-            'epsilon': self.epsilon,
-            'learning_rate': self.lr,
-            'epsilon_min': self.epsilon_min,
-            'lr_min': self.lr_min
+            "epsilon": self.epsilon,
+            "learning_rate": self.lr,
+            "epsilon_min": self.epsilon_min,
+            "lr_min": self.lr_min,
         }
 
     def set_final_reward(self, reward: float):
@@ -231,7 +262,7 @@ class CNNAgent(Agent):
             best_input_tensor, local_reward = self.history_data[i]
 
             # Calculate Q-values for this state
-            q_values = self.model.forward(best_input_tensor)
+            q_values = self.model.forward(best_input_tensor).squeeze()
             # Calculate loss
             loss = self.criterion(q_values, target_q_values)
             losses.append(loss)
@@ -247,7 +278,7 @@ class CNNAgent(Agent):
             # Gradient clipping to prevent exploding gradients
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
             self.optimizer.step()
-            
+
             # Update hyperparameters after training
             self.update_hyperparameters()
 
