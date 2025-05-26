@@ -27,3 +27,9 @@ Once the server is running, open your browser and go to [http://127.0.0.1:8000/]
 ```bash
 python run_random_agents.py
 ```
+
+### train CNN
+Will load `cnn_agent_best.pt` and train a new CNN agent.
+```bash
+python trainCNN.py
+```
