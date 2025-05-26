@@ -6,6 +6,7 @@ from game.gameLogic import CardPlay
 from agents import Agent, HumanAgent, CNNAgent
 from typing import List
 
+
 class GameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.game = big2Game()
@@ -35,7 +36,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         if data["type"] == "AIGo" or data["type"] == "submitPlayerHand":
             if data["type"] == "submitPlayerHand":
                 self.agents[0].update_human_action(CardPlay(data["hand"]))
-            
+
             playersGo, firstPlayer, history, hand, availAcs = (
                 self.game.getCurrentState()
             )

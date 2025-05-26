@@ -43,7 +43,9 @@ class PlayerHandCard:
                 np.isin(plays_in_type, self.handcards).all(axis=1)
             ]
 
-    def get_available_plays(self, lastPlayOnTop: CardPlay, control: bool) -> List[CardPlay]:
+    def get_available_plays(
+        self, lastPlayOnTop: CardPlay, control: bool
+    ) -> List[CardPlay]:
         # 篩選可出牌型
         available_plays = []
         # 是否有梅花三，要第一個出牌

@@ -369,15 +369,15 @@
    * An event listener to be called when the WebSocket connection's readyState changes to OPEN;
    * this indicates that the connection is ready to send and receive data.
    */
-  ReconnectingWebSocket.prototype.onopen = function (event) {};
+  ReconnectingWebSocket.prototype.onopen = function (event) { };
   /** An event listener to be called when the WebSocket connection's readyState changes to CLOSED. */
-  ReconnectingWebSocket.prototype.onclose = function (event) {};
+  ReconnectingWebSocket.prototype.onclose = function (event) { };
   /** An event listener to be called when a connection begins being attempted. */
-  ReconnectingWebSocket.prototype.onconnecting = function (event) {};
+  ReconnectingWebSocket.prototype.onconnecting = function (event) { };
   /** An event listener to be called when a message is received from the server. */
-  ReconnectingWebSocket.prototype.onmessage = function (event) {};
+  ReconnectingWebSocket.prototype.onmessage = function (event) { };
   /** An event listener to be called when an error occurs. */
-  ReconnectingWebSocket.prototype.onerror = function (event) {};
+  ReconnectingWebSocket.prototype.onerror = function (event) { };
 
   /**
    * Whether all instances of ReconnectingWebSocket should log debug messages.

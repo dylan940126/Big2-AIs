@@ -78,7 +78,7 @@ class CardPlay:
             self._combination = PlayType.UNKNOWN
 
         return self._combination
-    
+
     def __len__(self):
         return self.cards.size
 
@@ -120,11 +120,14 @@ class CardPlay:
 
         return f"{str_}: {convert_index_to_str(self.cards)}"
 
+
 def convert_index_to_str(cards: np.ndarray) -> str:
     """
     Convert a list of card indices to a string representation.
     """
-    value_str = np.array(["3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2"])
+    value_str = np.array(
+        ["3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A", "2"]
+    )
     suit_str = np.array(["♧ ", "♢ ", "♡ ", "♤ "])
     cards_str = suit_str[cards % 4] + value_str[cards // 4] if cards.size > 0 else ""
     return f"[{', '.join(cards_str)}]"

@@ -24,7 +24,15 @@ AllPlays[PlayType.PAIR] = np.stack(
 
 AllPlays[PlayType.STRAIGHT] = np.stack(
     [
-        np.array([v * 4 + s1, (v + 1) * 4 + s2, (v + 2) * 4 + s3, (v + 3) * 4 + s4, (v + 4) * 4 + s5])
+        np.array(
+            [
+                v * 4 + s1,
+                (v + 1) * 4 + s2,
+                (v + 2) * 4 + s3,
+                (v + 3) * 4 + s4,
+                (v + 4) * 4 + s5,
+            ]
+        )
         for v in range(9)
         for s1, s2, s3, s4, s5 in product(range(4), repeat=5)
     ]

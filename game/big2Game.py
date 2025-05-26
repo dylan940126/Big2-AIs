@@ -59,7 +59,9 @@ class big2Game:
     def getFirstPlayer(self) -> int:
         return self.firstPlayer
 
-    def getHistory(self, length: int | None = None, no_pass: bool = False) -> list[CardPlay] | list:
+    def getHistory(
+        self, length: int | None = None, no_pass: bool = False
+    ) -> list[CardPlay] | list:
         """
         Get the last n plays in the play history.
         If length is None, return the entire play history.
@@ -98,7 +100,9 @@ class big2Game:
                 return prev_play
         return None
 
-    def getCurrentState(self) -> tuple[int, int, List[CardPlay], PlayerHandCard, List[CardPlay]]:
+    def getCurrentState(
+        self,
+    ) -> tuple[int, int, List[CardPlay], PlayerHandCard, List[CardPlay]]:
         return (
             self.playersGo,
             self.firstPlayer,
