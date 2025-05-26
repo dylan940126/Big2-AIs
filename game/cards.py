@@ -78,6 +78,9 @@ class CardPlay:
             self._combination = PlayType.UNKNOWN
 
         return self._combination
+    
+    def __len__(self):
+        return self.cards.size
 
     def __eq__(self, value):
         if not isinstance(value, CardPlay):

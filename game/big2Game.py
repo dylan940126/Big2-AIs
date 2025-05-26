@@ -1,21 +1,24 @@
 # big 2 class
-from gameLogic import CardPlay, PlayerHandCard, PlayType
+from typing import Any, List
+from game.gameLogic import CardPlay, PlayerHandCard, PlayType
 
 import numpy as np
 import random
 
 
 class big2Game:
-    playHistory: list[CardPlay]
+    playHistory: List[CardPlay]
 
-    def __init__(self):
-        self.reset()
+    def __init__(self, cards: List[int] | None = None):
+        self.reset(cards)
 
-    def reset(self):
+    def reset(self, cards: List[int] | None = None):
         self.rewards = np.zeros(4)
 
-        cards = list(range(52))
-        random.shuffle(cards)
+        if cards is None:
+            cards = list(range(52))
+            random.shuffle(cards)
+
         self.PlayersHand = [
             PlayerHandCard(cards[0:13]),
             PlayerHandCard(cards[13:26]),
@@ -24,12 +27,13 @@ class big2Game:
         ]
         for i in range(4):
             if self.PlayersHand[i].handcards[0] == 0:
+                self.firstPlayer = i
                 self.playersGo = i
                 break
 
         self.playHistory = []
 
-    def assignRewards(self):
+    def getRewards(self):
         cardsLeft = np.array([len(self.PlayersHand[i]) for i in range(4)])
         winner = cardsLeft.argmin()
         for i in range(4):
@@ -37,6 +41,7 @@ class big2Game:
                 continue
             self.rewards[i] -= cardsLeft[i]
             self.rewards[winner] += cardsLeft[i]
+        return self.rewards
 
     def step(self, play: CardPlay):
         currentPlayerHand = self.PlayersHand[self.playersGo]
@@ -47,11 +52,14 @@ class big2Game:
         currentPlayerHand.remove_played_cards(play)
         self.playHistory.append(play)
         if self.isGameOver():
-            self.assignRewards()
+            self.getRewards()
             return
         self.playersGo = (self.playersGo + 1) % 4
 
-    def getHistory(self, length: int | None = None, no_pass: bool = False):
+    def getFirstPlayer(self) -> int:
+        return self.firstPlayer
+
+    def getHistory(self, length: int | None = None, no_pass: bool = False) -> list[CardPlay] | list:
         """
         Get the last n plays in the play history.
         If length is None, return the entire play history.
@@ -75,27 +83,33 @@ class big2Game:
         else:
             return history[-length:]
 
-    def isGameOver(self):
+    def isGameOver(self) -> bool:
         return any(len(self.PlayersHand[i]) == 0 for i in range(4))
 
-    def playerHasControl(self):
+    def playerHasControl(self) -> bool:
         return all(i.get_type() == PlayType.PASS for i in self.getHistory(length=3))
 
-    def getPlayOnTop(self):
+    def getPlayOnTop(self) -> CardPlay | None:
+        """
+        Get the last play that was not a pass. If this is the first play, return None.
+        """
         for prev_play in self.playHistory[::-1]:
             if prev_play.get_type() != PlayType.PASS:
                 return prev_play
+        return None
 
-    def getCurrentState(self):
+    def getCurrentState(self) -> tuple[int, int, List[CardPlay], PlayerHandCard, List[CardPlay]]:
         return (
             self.playersGo,
+            self.firstPlayer,
             self.getHistory(),
+            self.PlayersHand[self.playersGo],
             self.PlayersHand[self.playersGo].get_available_plays(
                 self.getPlayOnTop(), self.playerHasControl()
             ),
         )
 
-    def getInfoForDrawing(self):
+    def getInfoForDrawing(self) -> dict[str, Any]:
         info = {
             "type": "updateGame",
             "playersHand": self.PlayersHand[0].get_cards_index(),

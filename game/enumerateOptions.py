@@ -1,4 +1,4 @@
-from cards import PlayType
+from game.cards import PlayType
 from itertools import combinations, product, permutations
 import numpy as np
 

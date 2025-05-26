@@ -1,32 +1,19 @@
-# 無UI的遊戲 全是randomagent 跑1000場
-import random
 import numpy as np
 from tqdm import tqdm
 from game.big2Game import big2Game
 import multiprocessing
-
-class RandomAgent:
-    def step(self, history, availAcs):
-        """
-        隨機從可行動作中選擇一個
-        """
-        if len(availAcs) == 0:
-            raise ValueError("沒有可用的行動")
-        action = random.choice(availAcs)
-        return action
+from agents import RandomAgent
 
 def run_game(_):
-    """
-    進行一場遊戲，所有玩家都是隨機代理
-    """
+    """進行一場遊戲，所有玩家都是隨機代理"""
     game = big2Game()
     random_agents = [RandomAgent() for _ in range(4)]
     
     while not game.isGameOver():
         # 獲取當前玩家和可行動作
-        pGo, history, availAcs = game.getCurrentState()
+        player_go, first_player, history, hand, avail_actions = game.getCurrentState()
         # 讓隨機代理做出決策
-        action = random_agents[pGo].step(history, availAcs)
+        action = random_agents[player_go].step(first_player, history, hand, avail_actions)
         # 執行決策
         game.step(action)
     

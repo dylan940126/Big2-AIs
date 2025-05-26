@@ -1,36 +1,26 @@
+# filepath: /home/dylan/data/文件/NYCU/大二下/515515人工智慧概論/Final Project/game/consumers.py
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
-from big2Game import big2Game
-import random
-import numpy as np
-from cnnAgent import CNNBot, hand_to_matrix, play_to_matrix
-from cardEstimator import estimate_opponent_cards  # <- use dummy for now
-
-
-class RandomAgent:
-    def step(self, history, availAcs: list[big2Game.CardPlay]):
-        """
-        Randomly select an action from the available actions.
-        """
-        if len(availAcs) == 0:
-            raise ValueError("No available actions")
-        action = random.choice(availAcs)
-        return action
-
-
-random_agent = RandomAgent()
-
-cnn_agent = CNNBot(model_path="cnn_model.pt", device="cpu")  # Adjust path/device
-
+from game.big2Game import big2Game
+from game.gameLogic import CardPlay
+from agents import Agent, HumanAgent, CNNAgent
+from typing import List
 
 class GameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.game = big2Game.big2Game()
+        self.game = big2Game()
         self.url_route = self.scope.get("url_route", {})
         self.url_args = self.url_route.get("kwargs", {})
 
         await self.accept()
         await self.sendCurrentGameState()
+
+        human_agent = HumanAgent()
+        cnn_agent_1 = CNNAgent(model="cnn_agent_best.pt", train=False)
+        cnn_agent_2 = CNNAgent(model=cnn_agent_1.model, train=False)
+        cnn_agent_3 = CNNAgent(model=cnn_agent_1.model, train=False)
+
+        self.agents: List[Agent] = [human_agent, cnn_agent_1, cnn_agent_2, cnn_agent_3]
 
     async def disconnect(self, close_code):
         pass
@@ -42,154 +32,80 @@ class GameConsumer(AsyncWebsocketConsumer):
         # when we receive something from client side.
         data = json.loads(text_data)
         # import pdb; pdb.set_trace()
-        """
-        if data["type"] == "AIGo":
-            pGo, history, availAcs = self.game.getCurrentState()
-            print(
-                f"Player: {pGo}, Hand: {self.game.PlayersHand[pGo]}, Available Actions: {availAcs}"
-            )
-            action = random_agent.step(history, availAcs)
-            self.game.step(action)
-            await self.sendCurrentGameState()
-        """
-        if data["type"] == "AIGo":
-            pGo, history, availAcs = self.game.getCurrentState()
-
-            if len(availAcs) == 0:
-                self.game.step(big2Game.CardPlay([]))
-                await self.sendCurrentGameState()
-                return
-
-            hand_matrix = hand_to_matrix(self.game.PlayersHand[pGo])
-
-            played_cards = [p for p in self.game.playHistory if p.get_type() != big2Game.PlayType.PASS]
-            remaining_counts = [len(self.game.PlayersHand[i]) for i in range(4) if i != pGo]
-
-            predicted_matrix_3 = estimate_opponent_cards(
-                current_hand=hand_matrix,
-                played_cards=played_cards,
-                remaining_counts=remaining_counts,
-                history=self.game.playHistory
+        if data["type"] == "AIGo" or data["type"] == "submitPlayerHand":
+            if data["type"] == "submitPlayerHand":
+                self.agents[0].update_human_action(CardPlay(data["hand"]))
+            
+            playersGo, firstPlayer, history, hand, availAcs = (
+                self.game.getCurrentState()
             )
 
-            predicted_matrix = np.mean(predicted_matrix_3, axis=0)  # collapse 3x4x13 to 4x13
-
+            agent = self.agents[playersGo]
             try:
-                action = cnn_agent.step(predicted_matrix, hand_matrix, availAcs)
+                action = agent.step(firstPlayer, history, hand, availAcs)
                 self.game.step(action)
             except ValueError as e:
-                await self.send(text_data=json.dumps({
-                    "type": "error",
-                    "error": str(e)
-                }))
+                await self.send(
+                    text_data=json.dumps({"type": "error", "error": str(e)})
+                )
                 return
 
             await self.sendCurrentGameState()
 
         elif data["type"] == "reset":
             self.game.reset()
+            for agent in self.agents:
+                agent.reset()
             await self.sendCurrentGameState()
-        elif data["type"] == "pass":
-            if self.game.playersGo != 0:
-                await self.send(
-                    text_data=json.dumps(
-                        {"type": "error", "error": "Wasn't your go ya cheat!"}
-                    )
-                )
-            else:
-                self.game.step(big2Game.CardPlay([]))
-                await self.sendCurrentGameState()
-        elif data["type"] == "submitPlayerHand":
-            # indsPlayed = data['hand']
-            # if len(indsPlayed)==1:
-            #     opt = indsPlayed[0]
-            #     nC = 1
-            # elif len(indsPlayed)==2:
-            #     opt = enumerateOptions.twoCardIndices[indsPlayed[0]][indsPlayed[1]]
-            #     nC = 2
-            # elif len(indsPlayed)==3:
-            #     opt = enumerateOptions.threeCardIndices[indsPlayed[0]][indsPlayed[1]][indsPlayed[2]]
-            #     nC = 3
-            # elif len(indsPlayed)==4:
-            #     opt = enumerateOptions.fourCardIndices[indsPlayed[0]][indsPlayed[1]][indsPlayed[2]][indsPlayed[3]]
-            #     nC = 4
-            # elif len(indsPlayed)==5:
-            #     opt = enumerateOptions.fiveCardIndices[indsPlayed[0]][indsPlayed[1]][indsPlayed[2]][indsPlayed[3]][indsPlayed[4]]
-            #     nC = 5
-            # index = enumerateOptions.getIndex(opt, nC)
-            # availAcs = self.game.returnAvailableActions()
-            # if availAcs[index] == 0:
-            #     await self.send(text_data=json.dumps({
-            #         'type' : "error",
-            #         'error' : "Server says no. Stop trying to cheat!"
-            #     }))
-            # else:
-            #     reward, done, info = self.game.step(index)
-            #     await self.sendCurrentGameState()
-            play = data["hand"]
-            if self.game.playersGo != 0:
-                await self.send(
-                    text_data=json.dumps(
-                        {"type": "error", "error": "Wasn't your go ya cheat!"}
-                    )
-                )
-            else:
-                try:
-                    self.game.step(big2Game.CardPlay(play))
-                    await self.sendCurrentGameState()
-                except ValueError as e:
-                    await self.send(
-                        text_data=json.dumps({"type": "error", "error": str(e)})
-                    )
-        elif data["type"] == "autoPlay":
-            self.games_played = 0
-            self.total_wins = [0, 0, 0, 0]
-            self.total_rewards = [0, 0, 0, 0]
-            await self.runAutoPlay(num_games=1000)
 
-    async def runAutoPlay(self, num_games):
-        while self.games_played < num_games:
-            if self.game.isGameOver():
-                self.game.assignRewards()
-                winner = int(np.argmax(self.game.rewards))
-                self.total_wins[winner] += 1
-                for i in range(4):
-                    self.total_rewards[i] += self.game.rewards[i]
+        # elif data["type"] == "autoPlay":
+        #     self.games_played = 0
+        #     self.total_wins = [0, 0, 0, 0]
+        #     self.total_rewards = [0, 0, 0, 0]
+        #     await self.runAutoPlay(num_games=1000)
 
-                self.games_played += 1
-                self.game.reset()
-                continue
+    # async def runAutoPlay(self, num_games):
+    #     while self.games_played < num_games:
+    #         if self.game.isGameOver():
+    #             self.game.assignRewards()
+    #             winner = int(np.argmax(self.game.rewards))
+    #             self.total_wins[winner] += 1
+    #             for i in range(4):
+    #                 self.total_rewards[i] += self.game.rewards[i]
 
-            pGo, history, availAcs = self.game.getCurrentState()
+    #             self.games_played += 1
+    #             self.game.reset()
+    #             continue
 
-            if len(availAcs) == 0:
-                self.game.step(big2Game.CardPlay([]))
-                continue
+    #         pGo, firstPlayer, history, hand, availAcs = self.game.getCurrentState()
 
-            hand_matrix = hand_to_matrix(self.game.PlayersHand[pGo])
-            played_cards = [p for p in self.game.playHistory if p.get_type() != big2Game.PlayType.PASS]
-            remaining_counts = [len(self.game.PlayersHand[i]) for i in range(4) if i != pGo]
+    #         if len(availAcs) == 0:
+    #             self.game.step(big2Game.CardPlay([]))
+    #             continue
 
-            predicted_matrix_3 = estimate_opponent_cards(
-                current_hand=hand_matrix,
-                played_cards=played_cards,
-                remaining_counts=remaining_counts,
-                history=self.game.playHistory
-            )
+    #         # 在這裡也需要根據玩家選擇不同的 agent
+    #         try:
+    #             if pGo == 1:
+    #                 agent = cnn_agent_1
+    #             elif pGo == 2:
+    #                 agent = cnn_agent_2
+    #             elif pGo == 3:
+    #                 agent = cnn_agent_3
+    #             else:
+    #                 raise ValueError(f"未知的玩家編號: {pGo}")
 
-            predicted_matrix = np.mean(predicted_matrix_3, axis=0)
+    #             action = agent.step(
+    #                 firstPlayer, history, hand, availAcs
+    #             )
+    #             self.game.step(action)
+    #         except ValueError:
+    #             self.game.step(big2Game.CardPlay([]))
 
-            try:
-                action = cnn_agent.step(predicted_matrix, hand_matrix, availAcs)
-                self.game.step(action)
-            except ValueError:
-                self.game.step(big2Game.CardPlay([]))
-
-        # Done with all games
-        await self.send(text_data=json.dumps({
-            "type": "autoDone",
-            "message": f"{num_games} games completed.",
-            "totalWins": self.total_wins,
-            "totalRewards": self.total_rewards,
-            "winRates": [round(w / num_games, 3) for w in self.total_wins]
-        }))
+    #     # Done with all games
+    #     await self.send(text_data=json.dumps({
+    #         "type": "autoDone",
+    #         "message": f"{num_games} games completed.",
+    #         "totalWins": self.total_wins,
+    #         "totalRewards": self.total_rewards,
+    #         "winRates": [round(w / num_games, 3) for w in self.total_wins]
+    #     }))
