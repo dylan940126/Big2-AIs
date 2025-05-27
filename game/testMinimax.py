@@ -4,7 +4,7 @@ from big2Game import big2Game
 from minimaxAgent import MinimaxAgent
 from gameLogic import CardPlay, PlayType
 
-NUM_GAMES = 200
+NUM_GAMES = 100
 
 minimax_wins = 0
 
