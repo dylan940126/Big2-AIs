@@ -3,7 +3,7 @@ import random
 from big2Game import big2Game
 from minimaxAgent import MinimaxAgent
 from gameLogic import CardPlay, PlayType
-
+##### file unfinished #####
 NUM_GAMES = 100
 
 minimax_wins = 0
