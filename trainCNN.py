@@ -29,16 +29,13 @@ def profile(fnc):
     return inner
 
 
-def run_game(model_state_dict) -> List[float]:
+def run_game(agent: Agent) -> List[float]:
     """進行一場遊戲，一個CNN代理對抗三個隨機代理"""
     game = big2Game()
-
-    # Create CNN model and load state dict
-    cnn_model = Big2CNN()
-    cnn_model.load_state_dict(model_state_dict)
+    agent.reset()
 
     agents: List[Agent] = [
-        CNNAgent(model=cnn_model, train=False),
+        agent,
         RandomAgent(),
         RandomAgent(),
         RandomAgent(),
@@ -54,15 +51,16 @@ def run_game(model_state_dict) -> List[float]:
     # 遊戲結束，返回獎勵
     return rewards
 
-
-def train_single_game(model):
+def train_single_game(agent: Agent, best_agent: Agent):
     """訓練單場遊戲"""
     game = big2Game()
+    agent.reset()
+    best_agent.reset()
     agents: List[Agent] = [
-        CNNAgent(model=model, train=True),
-        CNNAgent(model=model, train=True),
-        CNNAgent(model=model, train=True),
-        CNNAgent(model=model, train=True),
+        agent,
+        best_agent,
+        best_agent,
+        best_agent,
     ]
 
     while not game.isGameOver():
@@ -71,24 +69,22 @@ def train_single_game(model):
         game.step(action)
 
     rewards = game.getRewards()
-    for i, agent in enumerate(agents):
-        agent.set_final_reward(rewards[i])
+    agent.set_final_reward(rewards[0])
 
     return rewards
 
 
-def evaluate_model(model, num_games=100):
+def evaluate_model(agent: Agent, num_games=100):
     """評估模型性能"""
     total_rewards = np.zeros(4, dtype=float)
     wins = np.zeros(4, dtype=int)
 
-    model_state_dict = model.state_dict()
     cpu_count = 4
 
     with multiprocessing.Pool(processes=cpu_count) as pool:
         results = list(
             tqdm(
-                pool.imap(run_game, repeat(model_state_dict, num_games)),
+                pool.imap(run_game, repeat(agent, num_games)),
                 total=num_games,
                 desc="評估中",
             )
@@ -108,8 +104,13 @@ if __name__ == "__main__":
     num_games = 100
     training_games = 100  # Number of games to train before evaluation
 
-    cnn_model = Big2CNN()
-    cnn_model.load_state_dict(torch.load("cnn_agent_best.pt"))
+    training_model = Big2CNN()
+    # training_model.load_state_dict(torch.load("cnn_agent_best.pt")) # Comment this line if you want to start training from scratch
+    training_model.train()
+
+    best_model = Big2CNN()
+    # best_model.load_state_dict(torch.load("cnn_agent_best.pt"))
+    best_model.eval()
 
     multiprocessing.set_start_method("spawn")
 
@@ -124,8 +125,10 @@ if __name__ == "__main__":
         # Training phase
         print(f"訓練階段：進行 {training_games} 場遊戲...")
         training_rewards = []
+        training_agent = CNNAgent(training_model, train=True)
+        best_agent = CNNAgent(best_model, train=False)
         for i in tqdm(range(training_games), desc="訓練中"):
-            rewards = train_single_game(cnn_model)
+            rewards = train_single_game(training_agent, best_agent)
             training_rewards.append(rewards)
 
         # Calculate training statistics
@@ -142,7 +145,8 @@ if __name__ == "__main__":
 
         # Evaluation phase
         print(f"評估階段：進行 {num_games} 場遊戲...")
-        avg_rewards, win_rates, wins = evaluate_model(cnn_model, num_games)
+        eval_agent = CNNAgent(training_model, train=False)
+        avg_rewards, win_rates, wins = evaluate_model(eval_agent, num_games)
 
         # 輸出結果
         print("\n----------- 評估結果統計 -----------")
@@ -160,5 +164,6 @@ if __name__ == "__main__":
         # Save best model if CNN win rate is improving
         if win_rates[0] > best_win_rate:  # If CNN wins more than previous best
             best_win_rate = win_rates[0]
-            torch.save(cnn_model.state_dict(), "cnn_agent_best.pt")
+            best_model.load_state_dict(training_model.state_dict())
+            torch.save(training_model.state_dict(), "cnn_agent_best.pt")
             print("🎉 新的最佳模型已保存！")
