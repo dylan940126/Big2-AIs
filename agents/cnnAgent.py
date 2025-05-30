@@ -3,7 +3,7 @@ from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 from game.gameLogic import CardPlay, PlayerHandCard
-from agents import Agent
+from agents.agent import Agent
 from typing import List, Tuple
 
 
@@ -19,8 +19,6 @@ class Big2CNN_old(nn.Module):
         self.fc2 = nn.Linear(128, 1)
 
     def forward(self, x) -> Tensor:
-        if x.shape == (5, 4, 13):
-            x = x.unsqueeze(0)
         x = F.relu(self.conv1(x))  # (B, 32, 1, 13)
         x = F.relu(self.conv2(x))  # (B, 64, 1, 13)
         x = x.flatten(start_dim=1)  # Flatten to (B, 64 * 1 * 13)
@@ -260,6 +258,7 @@ class CNNAgent(Agent):
         # Train on experiences in reverse order (temporal difference learning)
         for i in range(len(self.history_data) - 1, -1, -1):
             best_input_tensor, local_reward = self.history_data[i]
+            best_input_tensor = best_input_tensor.unsqueeze(0)  # Add batch dimension
 
             # Calculate Q-values for this state
             q_values = self.model.forward(best_input_tensor).squeeze()
