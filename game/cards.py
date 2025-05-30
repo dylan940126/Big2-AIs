@@ -92,6 +92,11 @@ class CardPlay:
             return NotImplemented
         if self.get_type() != value.get_type():
             raise ValueError("Cannot compare different play types")
+        if self.get_type() == PlayType.FULL_HOUSE:
+            # Compare by the rank of the three of a kind
+            self_three = np.max(self.cards[self.cards // 4 == np.bincount(self.cards // 4).argmax()])
+            value_three = np.max(value.cards[value.cards // 4 == np.bincount(value.cards // 4).argmax()])
+            return self_three < value_three
         return self.cards[-1] < value.cards[-1]
 
     def __repr__(self) -> str:
