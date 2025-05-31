@@ -17,7 +17,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.sendCurrentGameState()
 
         human_agent = HumanAgent()
-        cnn_agent_1 = CNNAgent(model="cnn_agent_best.pt", train=False)
+        cnn_agent_1 = CNNAgent(model="CNN_agent_best.pt", train=False)
         cnn_agent_2 = CNNAgent(model=cnn_agent_1.model, train=False)
         cnn_agent_3 = CNNAgent(model=cnn_agent_1.model, train=False)
 
