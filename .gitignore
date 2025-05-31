@@ -7,3 +7,5 @@ __pycache__/
 .python-version
 pyproject.toml
 uv.lock
+evaluation_results/
+*log*

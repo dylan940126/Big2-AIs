@@ -29,7 +29,7 @@ python run_random_agents.py
 ```
 
 ### train CNN
-Will load `cnn_agent_best.pt` and train a new CNN agent.
+Will load `CNN_agent_best.pt` and train a new CNN agent.
 ```bash
 python trainCNN.py
 ```
