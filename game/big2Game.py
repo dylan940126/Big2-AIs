@@ -33,7 +33,7 @@ class big2Game:
 
         self.playHistory = []
 
-    def getRewards(self):
+    def assignRewards(self):
         cardsLeft = np.array([len(self.PlayersHand[i]) for i in range(4)])
         winner = cardsLeft.argmin()
         for i in range(4):
@@ -41,6 +41,8 @@ class big2Game:
                 continue
             self.rewards[i] -= cardsLeft[i]
             self.rewards[winner] += cardsLeft[i]
+
+    def getRewards(self) -> np.ndarray:
         return self.rewards
 
     def step(self, play: CardPlay):
@@ -52,7 +54,7 @@ class big2Game:
         currentPlayerHand.remove_played_cards(play)
         self.playHistory.append(play)
         if self.isGameOver():
-            self.getRewards()
+            self.assignRewards()
             return
         self.playersGo = (self.playersGo + 1) % 4
 
